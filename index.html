@@ -224,6 +224,9 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 /* --- control rail: see-through on desktop, top toolbar on phones --- */
 .rail button,.speed{background:rgba(27,34,43,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .rail{transition:opacity .35s ease}
+.rmain{display:contents}
+#bHide{opacity:.5}
+#bHide:hover{opacity:1;color:#f87171}
 @media (hover:hover) and (pointer:fine){ .rail{opacity:.55} .rail:hover{opacity:1} body.idle .rail{opacity:0;pointer-events:none} }
 @media (max-width:700px){
   /* one-handed layout: controls in a bottom bar, scrub bar just above it */
@@ -233,6 +236,11 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
   .rail button small,.speed small{display:none}
   .rail button.on{background:rgba(255,180,84,.85)}
   .rail .ph{display:flex}
+  .rail{overflow-x:auto;justify-content:space-between;scrollbar-width:none;overscroll-behavior-x:contain}
+  .rail::-webkit-scrollbar{display:none}
+  .rail{scroll-snap-type:x mandatory;gap:0}
+  .rmain{display:flex;flex:0 0 100%;justify-content:space-around;align-items:center;gap:4px;scroll-snap-align:start}
+  #bHide{scroll-snap-align:end;margin:0 10px 0 6px}
   #bSrc{display:none!important}
   .speed{flex-direction:row;padding:0 2px;border-radius:21px;gap:0;height:min(42px,10.4vw);flex:0 0 auto}
   .speed button{width:min(34px,8.4vw);height:min(40px,10vw);flex:0 0 auto;font-size:19px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:0}
@@ -331,13 +339,15 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 .tsecs label{display:flex;align-items:center;gap:6px}
 .tsecs input{width:18px;height:18px;accent-color:var(--acc)}
 #tscope button{font-size:13px;padding:7px 10px}
+.tsets{display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;font-weight:600}
+.tsets .tlink{font-weight:500;font-size:13px}
 </style>
 </head>
 <body>
 <div id="bar"></div>
 <div id="top"><button id="chapbtn" aria-label="Chapters">☰ <b id="chapname">Start</b></button><span id="count"></span><span id="score"></span><button id="bProg" title="Progress & coverage">📊</button><button id="bTest" title="Random test">🎲 Test</button></div>
 <main id="feed"></main>
-<div class="rail">
+<div class="rail"><div class="rmain">
   <button id="bMute" title="Sound (M)">🔇<small>sound</small></button>
   <div class="speed" id="speed"><button id="sUp" title="Faster (+0.25×, key ])">+</button><span id="sVal">1×</span><small>speed</small><button id="sDown" title="Slower (−0.25×, key [)">−</button></div>
   <button id="bQuiz" title="Quiz mode: history first, diagnosis hidden (Q)">🩺<small>quiz</small></button>
@@ -347,6 +357,7 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
   <button id="bMenu" title="Chapters (C)">☰<small>jump</small></button>
   <button id="bProg2" class="ph" title="Progress">📊<small>progress</small></button>
   <button id="bTest2" class="ph" title="Random test">🎲<small>test</small></button>
+  </div><button id="bHide" title="Remove this case from the pile and quizzes (X)">🚫<small>remove</small></button>
 </div>
 <div class="sheet" id="menu"><div class="in"><button class="x" data-close>×</button><h3>Sections &amp; chapters</h3><div class="chl" id="chl"></div></div></div>
 <div class="sheet" id="hxs"><div class="in"><button class="x" data-close>×</button><h3 id="hxtitle"></h3><p id="hxtext"></p><p style="margin-top:14px"><a id="hxlink" target="_blank" rel="noopener">View case on gonioscopy.org ↗</a></p></div></div>
@@ -1174,7 +1185,7 @@ function buildImg(t,v,h,u,obj,gname,ci,n){
   <div class="info"><span class="chip">${esc(gname)}</span>
   <div class="title">${esc(t)}</div><button class="reveal">Tap to reveal diagnosis</button>
   <div class="hx${h?'':' none'}">${h?'<b>Description</b>'+esc(h):'No description — describe what you see.'}</div><button class="more">Show more ▾</button><button class="showdesc">👁 Show description (may give away the answer)</button>
-  <div class="credit">📷 ${obj.src==='wm'?(/^Wikimedia/.test(obj.cr||'')?'':'Wikimedia Commons · '):'EyeRounds.org, Univ. of Iowa · '}${esc(obj.cr||'')}${obj.src==='er'?' · CC BY-NC-ND 3.0':''} · <a href="${esc(u)}" target="_blank" rel="noopener">source ↗</a></div><div class="statrow"><div class="stat"></div><button class="hidebtn" title="Remove this case from the pile and quizzes (X)">🚫 Remove</button></div></div></div>`;
+  <div class="credit">📷 ${obj.src==='wm'?(/^Wikimedia/.test(obj.cr||'')?'':'Wikimedia Commons · '):'EyeRounds.org, Univ. of Iowa · '}${esc(obj.cr||'')}${obj.src==='er'?' · CC BY-NC-ND 3.0':''} · <a href="${esc(u)}" target="_blank" rel="noopener">source ↗</a></div><div class="statrow"><div class="stat"></div></div></div></div>`;
   feed.appendChild(el);
   const rec={type:'clip',kind:'img',qk:v,el,ch:ci,t,v,h,u,g:gname,n,vid:null,imgs:ims,imgsAll:ims,ik:0,loaded:false,seenSet:new Set()};
   slides.push(rec);
@@ -1205,7 +1216,7 @@ CH.forEach((c,ci)=>{
     <div class="seek"><input type="range" min="0" max="1000" value="0" step="1" aria-label="Scrub through video"><div class="srow"><button class="skip" data-d="-5">⟲ 5s</button><span class="tm">0:00 / 0:00</span><button class="skip" data-d="5">5s ⟳</button></div></div>
     <div class="info"><span class="chip">${esc(gname)}</span>${also?`<span class="chip also">also: ${esc(also)}</span>`:''}
     <div class="title">${esc(t)}</div><button class="reveal">Tap to reveal diagnosis</button>
-    <div class="hx${h?'':' none'}">${h?'<b>History</b>'+esc(h):'No history given — describe what you see.'}</div><div class="statrow"><div class="stat"></div><button class="hidebtn" title="Remove this case from the pile and quizzes (X)">🚫 Remove</button></div></div></div>`;
+    <div class="hx${h?'':' none'}">${h?'<b>History</b>'+esc(h):'No history given — describe what you see.'}</div><div class="statrow"><div class="stat"></div></div></div></div>`;
     feed.appendChild(el);
     const rec={type:'clip',kind:'video',qk:n,el,ch:ci,t,v,h,u,g:gname,n,vid:el.querySelector('video'),loaded:false};
     slides.push(rec);
@@ -1468,7 +1479,7 @@ function hideImage(s,k){
 applyHidden();
 // if we resumed onto a removed case, move on
 setTimeout(()=>{ const s=slides[cur]; if(caseHidden(s)) { const j=nextVisible(cur,1); cur=-1; go(j); activate(j); } },50);
-document.addEventListener('click',e=>{ const b=e.target.closest('.hidebtn'); if(!b) return; e.stopPropagation(); const s=slides.find(x=>x.el.contains(b)); hideCase(s); });
+document.getElementById('bHide').addEventListener('click',e=>{ e.stopPropagation(); const s=slides[cur]; if(!s||s.type!=='clip'){ toast('Swipe to a case first'); return; } hideCase(s); const r=document.querySelector('.rail'); if(r) r.scrollTo({left:0,behavior:'smooth'}); });
 
 // ---------- Random test ----------
 const T={el:document.getElementById('test'),items:[],i:0,res:[],n:10,normals:true,hint:false};
@@ -1536,19 +1547,26 @@ function pickBalanced(p,n){
   // normals: include a few if enabled, then fill evenly across sections
   const out=[]; if(T.normals){ const nrm=sh(p.filter(s=>s.isNormal)); const k=Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(n*0.2))); out.push(...nrm.slice(0,k)); }
   const pools=Object.keys(by).map(k=>by[k].filter(s=>!s.isNormal&&!out.includes(s)));
-  while(out.length<n&&pools.some(q=>q.length)){ const live=pools.filter(q=>q.length); const q=live[Math.floor(Math.random()*live.length)]; out.push(q.shift()); }
+  let order=sh(pools.map((_,i)=>i)), r=0;
+  while(out.length<n&&pools.some(q=>q.length)){ const q=pools[order[r%order.length]]; r++; if(r%order.length===0) order=sh(order); if(q.length) out.push(q.shift()); }
   return sh(out);
 }
 function tShow(html){T.el.querySelector('.tin').innerHTML=html;T.el.scrollTop=0}
-function openTest(scope){ if(scope) T.scope=scope; const s=slides[cur]; if(s&&s.type==='clip'&&s.vid)s.vid.pause(); qcard.classList.remove('open'); qpill.classList.remove('show'); T.el.classList.add('open'); tStart(); }
+function loadSecs(){ try{ const o=JSON.parse(localStorage.getItem('gonioscroll_testsecs')||'null'); if(o) return o; }catch(e){} return null; }
+function saveSecs(){ try{ localStorage.setItem('gonioscroll_testsecs',JSON.stringify(T.secs)); }catch(e){} }
+function openTest(scope){
+  if(scope==='all') T.secs=Object.fromEntries(Object.keys(SECS).map(k=>[k,true]));
+  else if(scope==='sec') T.secs=Object.fromEntries(Object.keys(SECS).map(k=>[k,k===SEC]));
+  else T.secs=T.secs||loadSecs()||Object.fromEntries(Object.keys(SECS).map(k=>[k,k===SEC]));
+  saveSecs(); T.scope='all'; const s=slides[cur]; if(s&&s.type==='clip'&&s.vid)s.vid.pause(); qcard.classList.remove('open'); qpill.classList.remove('show'); T.el.classList.add('open'); tStart(); }
 function closeTest(){ tStopVid(); T.el.classList.remove('open'); const s=slides[cur]; if(s&&s.type==='clip'&&s.vid){s.vid.play().catch(()=>{})} }
 function tStart(){
-  T.scope=T.scope||'sec'; T.secs=T.secs||Object.fromEntries(Object.keys(SECS).map(k=>[k,true]));
-  const all=T.scope==='all';
-  tShow(`<div class="th"><h2>🎲 ${all?'Test Everything':'Random test'}</h2><button class="tx" data-t="close">×</button></div>
-  <div class="tset"><span>What to test</span><div class="seg" id="tscope"><button data-sc="sec" class="${all?'':'on'}">${SECS[SEC].icon} ${SECS[SEC].name}</button><button data-sc="all" class="${all?'on':''}">🎲 Everything</button></div></div>
-  ${all?`<div class="tsecs">${Object.entries(SECS).map(([k,s])=>`<label><input type="checkbox" data-ts="${k}" ${T.secs[k]?'checked':''}> ${s.icon} ${s.name}</label>`).join('')}</div>`:''}
-  <p class="tm2">${all?'Any video or image from the ticked sections can come up, balanced across sections.':`You'll see ${IMGSEC?'cases':'clips'} from the ${SECS[SEC].name} section in a random order.`} Type the diagnosis, or <b>normal</b>. Marking accepts synonyms, abbreviations (PDS, PXF, NVI…) and small typos, and you can override it.</p>
+  T.scope='all'; T.secs=T.secs||loadSecs()||Object.fromEntries(Object.keys(SECS).map(k=>[k,k===SEC]));
+  const all=true, nOn=Object.values(T.secs).filter(Boolean).length;
+  tShow(`<div class="th"><h2>🎲 Random test</h2><button class="tx" data-t="close">×</button></div>
+  <div class="tsets"><span>Include</span><button class="tlink" data-t="secall">${nOn===Object.keys(SECS).length?'Only '+SECS[SEC].name:'Everything'}</button></div>
+  <div class="tsecs">${Object.entries(SECS).map(([k,s])=>`<label><input type="checkbox" data-ts="${k}" ${T.secs[k]?'checked':''}> ${s.icon} ${s.name}</label>`).join('')}</div>
+  <p class="tm2">Videos and images from the ticked sections come up in a random order, balanced across sections. Type the diagnosis, or <b>normal</b>. Marking accepts synonyms, abbreviations (PDS, PXF, NVI…) and small typos, and you can override it.</p>
   <div class="tset"><span>Number of ${all?'items':IMGSEC?'cases':'clips'}</span><div class="seg" id="tn">${[5,10,20,30].map(n=>`<button data-n="${n}" class="${n===T.n?'on':''}">${n}</button>`).join('')}</div></div>
   <label class="tset"><span>Include normal ${all?'examples':IMGSEC?'cases':'angles'}</span><input type="checkbox" id="tnorm" ${T.normals?'checked':''}></label>
   <label class="tset"><span>Show the history straight away<br><small>otherwise it's a hint you can reveal</small></span><input type="checkbox" id="thint" ${T.hint?'checked':''}></label>
@@ -1558,7 +1576,7 @@ function tBegin(items){ T.items=items; T.i=0; T.res=[]; tQ(); }
 function tStopVid(){const v=T.el.querySelector('video'); if(v){v.pause();v.removeAttribute('src');v.load()}}
 function tQ(){
   const s=T.items[T.i]; tStopVid();
-  tShow(`<div class="th"><span class="tprog">${T.scope==='all'&&s.sec?SECS[s.sec].icon+' '+SECS[s.sec].name+' · ':''}${T.scope==='all'?'Item':IMGSEC?'Case':'Clip'} ${T.i+1} / ${T.items.length} · ✓ ${T.res.filter(r=>r.ok).length}</span><button class="tx" data-t="quit">End</button></div>
+  tShow(`<div class="th"><span class="tprog">${s.sec&&Object.values(T.secs).filter(Boolean).length>1?SECS[s.sec].icon+' '+SECS[s.sec].name+' · ':''}${s.kind==='img'?'Case':'Clip'} ${T.i+1} / ${T.items.length} · ✓ ${T.res.filter(r=>r.ok).length}</span><button class="tx" data-t="quit">End</button></div>
   ${s.kind==='img'?`<div class="timgs">${s.imgs.map(([iu,c])=>`<figure><img src="${esc(iu)}" alt=""></figure>`).join('')}</div>`:`<div class="tvid"><video playsinline muted loop autoplay src="${CDN+s.v}"></video></div>
   <div class="seek tseek"><input type="range" min="0" max="1000" value="0"><div class="srow"><button class="skip" data-t="b5">⟲ 5s</button><span class="tm">0:00</span><span class="tspd"><button class="skip" data-t="sd">−</button> <b class="tsv">${rate}×</b> <button class="skip" data-t="su">+</button></span><button class="skip" data-t="snd">🔇</button><button class="skip" data-t="f5">5s ⟳</button></div></div>`}
   <div class="thx">${T.hint?hx(s):`<button class="tlink" data-t="hint">Show history (hint)</button>`}</div>
@@ -1601,12 +1619,12 @@ function tSummary(){
   T.missed=missed;
 }
 T.el.addEventListener('click',e=>{
-  const b=e.target.closest('[data-t],[data-n],[data-sc]'); if(!b)return;
-  if(b.dataset.sc){ T.scope=b.dataset.sc; tStart(); return; }
+  const b=e.target.closest('[data-t],[data-n]'); if(!b)return;
   if(b.dataset.n){T.n=+b.dataset.n;T.el.querySelectorAll('#tn button').forEach(x=>x.classList.toggle('on',x===b));return}
   const a=b.dataset.t, v=T.el.querySelector('video');
   if(a==='close')closeTest();
-  else if(a==='go'){T.normals=T.el.querySelector('#tnorm').checked;T.hint=T.el.querySelector('#thint').checked;if(T.scope==='all'){ const p=allPool().filter(s=>T.secs[s.sec]&&!caseHidden(s)).map(prepImgs); if(!p.length){ toast('Tick at least one section'); return; } tBegin(pickBalanced(p,T.n)); return; } const p=pool().filter(s=>!caseHidden(s)),sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);const nrm=sh(p.filter(s=>s.isNormal)),dis=sh(p.filter(s=>!s.isNormal));const k=T.normals?Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(T.n*0.25))):0;tBegin(sh(nrm.slice(0,k).concat(dis.slice(0,T.n-k))))}
+  else if(a==='go'){T.normals=T.el.querySelector('#tnorm').checked;T.hint=T.el.querySelector('#thint').checked;if(true){ saveSecs(); const p=allPool().filter(s=>T.secs[s.sec]&&!caseHidden(s)).map(prepImgs); if(!p.length){ toast('Tick at least one section'); return; } tBegin(pickBalanced(p,T.n)); return; } const p=pool().filter(s=>!caseHidden(s)),sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);const nrm=sh(p.filter(s=>s.isNormal)),dis=sh(p.filter(s=>!s.isNormal));const k=T.normals?Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(T.n*0.25))):0;tBegin(sh(nrm.slice(0,k).concat(dis.slice(0,T.n-k))))}
+  else if(a==='secall'){ const allOn=Object.values(T.secs).every(Boolean); T.secs=Object.fromEntries(Object.keys(SECS).map(k=>[k,allOn?k===SEC:true])); saveSecs(); tStart(); }
   else if(a==='hint')T.el.querySelector('.thx').innerHTML=hx(T.items[T.i]);
   else if(a==='skip')tAnswer('',true);
   else if(a==='next'){T.i++; T.i<T.items.length?tQ():tSummary()}
@@ -1620,7 +1638,7 @@ T.el.addEventListener('click',e=>{
   else if(v&&(a==='su'||a==='sd')){setRate(rate+(a==='su'?0.25:-0.25));v.playbackRate=rate;T.el.querySelector('.tsv').textContent=rate+'×'}
   else if(v&&a==='snd'){muted=!muted;v.muted=muted;b.textContent=muted?'🔇':'🔊';updMute()}
 });
-T.el.addEventListener('change',e=>{ const c=e.target.closest('[data-ts]'); if(c) T.secs[c.dataset.ts]=c.checked; });
+T.el.addEventListener('change',e=>{ const c=e.target.closest('[data-ts]'); if(c){ T.secs[c.dataset.ts]=c.checked; saveSecs(); const l=T.el.querySelector('[data-t=secall]'); if(l) l.textContent=Object.values(T.secs).every(Boolean)?'Only '+SECS[SEC].name:'Everything'; } });
 T.el.addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Escape')closeTest()});
 document.getElementById('bTest').onclick=()=>openTest(); document.getElementById('bTest2').onclick=()=>openTest();
 document.getElementById('startTest').onclick=()=>openTest('sec');
