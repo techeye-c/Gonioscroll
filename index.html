@@ -47,6 +47,7 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 /* rail */
 .rail{position:fixed;right:max(10px,env(safe-area-inset-right));bottom:calc(150px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;z-index:20}
 .rail button{width:46px;height:46px;border-radius:50%;background:#1b222bcc;backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:19px;border:1px solid #ffffff14}
+.rail .ph{display:none}
 .rail button small{font-size:9px;color:var(--mute);margin-top:1px}
 .rail button.on{background:var(--acc2);color:#111}
 .rail button.on small{color:#111}
@@ -208,8 +209,8 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 .pbtns .tgo{margin-top:0;font-size:14px;text-align:center;cursor:pointer}
 #ptext{width:100%;min-height:90px;margin-top:10px;background:#0f151b;color:var(--fg);border:1px solid #33404c;border-radius:10px;padding:8px;font:12px monospace}
 
-#bProg.synced{position:relative}
-#bProg.synced:after{content:"☁";position:absolute;right:-6px;top:-4px;font-size:10px;color:var(--acc)}
+#bProg.synced,#bProg2.synced{position:relative}
+#bProg.synced:after,#bProg2.synced:after{content:"☁";position:absolute;right:-6px;top:-4px;font-size:10px;color:var(--acc)}
 .steps{margin:6px 0 10px 18px;color:#cfd5db;font-size:13.5px}
 .steps li{margin-bottom:6px}
 .steps code{background:#0f151b;padding:1px 5px;border-radius:5px}
@@ -218,6 +219,34 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 .devs small{color:var(--mute)}
 @media (max-width:700px){.card{padding-right:74px}}
 @media (min-width:900px){.info{padding-right:90px}.title{font-size:22px}}
+
+/* --- control rail: see-through on desktop, top toolbar on phones --- */
+.rail button,.speed{background:rgba(27,34,43,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.rail{transition:opacity .35s ease}
+@media (hover:hover) and (pointer:fine){ .rail{opacity:.55} .rail:hover{opacity:1} body.idle .rail{opacity:0;pointer-events:none} }
+@media (max-width:700px){
+  /* one-handed layout: controls in a bottom bar, scrub bar just above it */
+  .rail{top:auto;bottom:0;left:0;right:0;flex-direction:row;justify-content:space-around;align-items:center;gap:4px;
+        padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:rgba(7,9,12,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid #ffffff12}
+  .rail button{width:min(42px,10.4vw);height:min(42px,10.4vw);flex:0 0 auto;font-size:min(18px,4.6vw);border-color:#ffffff10}
+  .rail button small,.speed small{display:none}
+  .rail button.on{background:rgba(255,180,84,.85)}
+  .rail .ph{display:flex}
+  #bSrc{display:none!important}
+  .speed{flex-direction:row;padding:0 2px;border-radius:21px;gap:0;height:min(42px,10.4vw);flex:0 0 auto}
+  .speed button{width:min(34px,8.4vw);height:min(40px,10vw);flex:0 0 auto;font-size:19px;background:none;backdrop-filter:none;-webkit-backdrop-filter:none;border:0}
+  #sDown{order:0} #sVal{order:1;min-width:30px;text-align:center} #sUp{order:2}
+  #top #bProg,#top #bTest{display:none}
+  .clip .col{padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+  .clip .vwrap{order:0;padding-top:calc(44px + env(safe-area-inset-top))}
+  .clip .info{order:1;padding:10px 18px 4px;min-height:0;background:none}
+  .clip .seek{order:2;padding:4px 18px 8px}
+  .card{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+  #qcard{bottom:calc(64px + env(safe-area-inset-bottom))}
+  #qpill{bottom:calc(66px + env(safe-area-inset-bottom))}
+  #toast{bottom:calc(72px + env(safe-area-inset-bottom))}
+}
+}
 </style>
 </head>
 <body>
@@ -231,6 +260,8 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
   <button id="bQ" title="Questions for this clip (?)">?<small>quiz Q</small></button>
   <button id="bSrc" title="Open case on gonioscopy.org">↗<small>source</small></button>
   <button id="bMenu" title="Chapters (C)">☰<small>jump</small></button>
+  <button id="bProg2" class="ph" title="Progress">📊<small>progress</small></button>
+  <button id="bTest2" class="ph" title="Random test">🎲<small>test</small></button>
 </div>
 <div class="sheet" id="menu"><div class="in"><button class="x" data-close>×</button><h3>Chapters</h3><div class="chl" id="chl"></div></div></div>
 <div class="sheet" id="hxs"><div class="in"><button class="x" data-close>×</button><h3 id="hxtitle"></h3><p id="hxtext"></p><p style="margin-top:14px"><a id="hxlink" target="_blank" rel="noopener">View case on gonioscopy.org ↗</a></p></div></div>
@@ -1174,7 +1205,7 @@ T.el.addEventListener('click',e=>{
   else if(v&&a==='snd'){muted=!muted;v.muted=muted;b.textContent=muted?'🔇':'🔊';updMute()}
 });
 T.el.addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Escape')closeTest()});
-document.getElementById('bTest').onclick=openTest;
+document.getElementById('bTest').onclick=openTest; document.getElementById('bTest2').onclick=openTest;
 document.getElementById('startTest').onclick=openTest;
 
 // ---------- Progress screen + per-clip stats ----------
@@ -1246,7 +1277,7 @@ PG.el.addEventListener('click',e=>{
   else if(a==='reset'){ if(Date.now()-resetArm<4000){ TRK.reset(); if(window.SYNC) SYNC.soon(true); Object.keys(QS).forEach(k=>delete QS[k]); saveQS(); score(); slides.forEach(s=>{s.qPopped=false}); m.textContent='Progress reset.'; renderProg(); } else { resetArm=Date.now(); b.textContent='Tap again to permanently reset everything'; } }
 });
 PG.el.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') closeProg(); });
-document.getElementById('bProg').onclick=openProg;
+document.getElementById('bProg').onclick=openProg; document.getElementById('bProg2').onclick=openProg;
 
 // ---------- Cloud sync via a secret GitHub Gist ----------
 const SYNC=(function(){
@@ -1295,7 +1326,7 @@ const SYNC=(function(){
   }
   function disconnect(){ cfg={}; saveCfg(); err=''; status=''; paint(); }
   const ago=t=>{ if(!t) return 'never'; const s=Math.round((Date.now()-t)/1000); return s<10?'just now':s<60?s+'s ago':s<3600?Math.round(s/60)+' min ago':new Date(t).toLocaleString(); };
-  function paint(){ document.getElementById('bProg').classList.toggle('synced',on()&&!cfg.paused&&!err); if(document.getElementById('prog').classList.contains('open')) renderPanel(); }
+  function paint(){ ['bProg','bProg2'].forEach(id=>{const e=document.getElementById(id); if(e) e.classList.toggle('synced',on()&&!cfg.paused&&!err);}); if(document.getElementById('prog').classList.contains('open')) renderPanel(); }
   function renderPanel(){
     const box=document.getElementById('syncbox'); if(!box) return;
     if(!on()){
