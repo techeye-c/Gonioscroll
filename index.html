@@ -950,7 +950,7 @@ document.getElementById('restart').onclick=()=>go(0);
 
 // --- state
 const LS=(()=>{try{localStorage.setItem('_t','1');return localStorage}catch(e){return null}})();
-let cur=-1, muted=true, rate=1;
+let cur=-1, muted=true, rate=1, lastI=null;
 const RMIN=0.25, RMAX=4;
 const fmt=s=>{s=Math.max(0,s||0);const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0')};
 function paintSeek(rec,fromInput){
@@ -970,14 +970,24 @@ function setRate(r){
   const s=slides[cur]; if(s&&s.type==='clip') s.vid.playbackRate=rate;
   if(LS) try{LS.setItem('gonioscroll_rate',rate)}catch(e){}
 }
-function load(rec){ if(rec.type!=='clip'||rec.loaded)return; rec.vid.src=CDN+rec.v; rec.vid.preload='auto'; rec.loaded=true; }
-function unload(rec){ if(rec.type!=='clip'||!rec.loaded)return; rec.vid.pause(); rec.vid.removeAttribute('src'); rec.vid.load(); rec.loaded=false; rec.retried=0; }
+function load(rec){ if(rec.type!=='clip'||rec.loaded)return; rec.vid.preload='auto'; rec.vid.src=CDN+rec.v+'#t=0.001'; rec.loaded=true; }
+// iOS Safari ignores preload until a video has played, so briefly play the upcoming clip (muted, off-screen) to start buffering it
+function warm(rec){
+  if(!rec||rec.type!=='clip'||rec.warmed) return; load(rec); rec.warmed=true;
+  const v=rec.vid; v.muted=true;
+  const stop=()=>{ v.removeEventListener('playing',stop); if(slides[cur]!==rec){ v.pause(); try{ v.currentTime=0.001; }catch(e){} } };
+  v.addEventListener('playing',stop); const p=v.play(); if(p) p.catch(()=>{ v.removeEventListener('playing',stop); });
+}
+function unload(rec){ if(rec.type!=='clip'||!rec.loaded)return; rec.vid.pause(); rec.vid.removeAttribute('src'); rec.vid.load(); rec.loaded=false; rec.retried=0; rec.warmed=false; }
 function togglePlay(rec){ const v=rec.vid; if(v.paused){v.play().catch(()=>{});rec.el.classList.remove('paused')} else {v.pause();rec.el.classList.add('paused')} }
 function activate(i){
   if(i===cur)return; cur=i;
   slides.forEach((s,j)=>{ if(Math.abs(j-i)<=2) load(s); else unload(s); if(j!==i&&s.type==='clip'&&s.loaded) s.vid.pause(); });
   const s=slides[i];
-  if(s.type==='clip'){ const v=s.vid; v.muted=muted; v.playbackRate=rate; s.el.classList.add('loading'); s.el.classList.remove('paused'); v.play().then(()=>s.el.classList.remove('loading')).catch(()=>{ if(!muted){muted=true;v.muted=true;v.play().catch(()=>{});updMute();} }); }
+  // warm the next clip in the direction of travel (and the one after a chapter card)
+  const dir=(typeof lastI==='number'&&i<lastI)?-1:1; lastI=i;
+  setTimeout(()=>{ if(cur!==i) return; let k=i+dir; while(slides[k]&&slides[k].type!=='clip'&&Math.abs(k-i)<3) k+=dir; warm(slides[k]); if(dir<0){ let f=i+1; while(slides[f]&&slides[f].type!=='clip'&&f-i<3) f++; warm(slides[f]); } }, s.type==='clip'?600:0);
+  if(s.type==='clip'){ const v=s.vid; v.muted=muted; v.playbackRate=rate; if(!v.paused||v.readyState>=3) s.el.classList.remove('loading'); else s.el.classList.add('loading'); s.el.classList.remove('paused'); v.play().then(()=>s.el.classList.remove('loading')).catch(()=>{ if(!muted){muted=true;v.muted=true;v.play().catch(()=>{});updMute();} }); }
   const ci=s.ch; const c=CH[ci];
   document.getElementById('chapname').innerHTML = ci>=0 ? `${ci+1}. ${esc(c.n)}${s.type==='clip'?' <span>· '+esc(s.g)+'</span>':''}` : (i===0?'GonioScroll':i===1?'0. History':'End');
   document.getElementById('count').textContent = s.type==='clip' ? `${s.n} / ${total}` : '';
@@ -1222,7 +1232,7 @@ function statLine(v){
 function paintStat(s){ if(s&&s.type==='clip'){ const e=s.el.querySelector('.stat'); if(e) e.innerHTML=statLine(s.v); } }
 TRK.on(v=>{ slides.forEach(s=>{ if(s.type==='clip'&&(v==null||s.v===v)) paintStat(s); }); if(PG.el.classList.contains('open')) renderProg(); });
 slides.forEach(paintStat);
-slides.forEach(s=>{ if(s.type==='clip') TRK.attach(s.vid,()=>s.v); });
+slides.forEach(s=>{ if(s.type==='clip') TRK.attach(s.vid,()=>slides[cur]===s?s.v:null); }); // only count the clip on screen (not pre-loading ones)
 
 function cellClass(v){ const r=TRK.get(v); if(!r) return 'c0'; if(r.w>=3) return 'c3'; if(r.w===2) return 'c2'; if(r.w===1) return 'c1'; return TRK.coverage(v)>0?'cp':'c0'; }
 function accClass(v){ const r=TRK.get(v); if(!r) return ''; const a=r.qa+r.ta, c=r.qc+r.tc; if(!a) return ''; return c/a>=0.75?'ag':c/a>=0.4?'aa':'ar'; }
