@@ -324,6 +324,13 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 .hidebtn:hover{color:#f87171;border-color:#f8717166}
 .hidlist>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
 .hidlist small{color:var(--mute);display:block}
+
+.secs .tall{border-color:#ffb45466;background:#1f1a12}
+.msecs [data-testall]{border-color:#ffb45466;color:var(--acc2)}
+.tsecs{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tsecs label{display:flex;align-items:center;gap:6px}
+.tsecs input{width:18px;height:18px;accent-color:var(--acc)}
+#tscope button{font-size:13px;padding:7px 10px}
 </style>
 </head>
 <body>
@@ -1117,12 +1124,12 @@ const ERB='https://eyerounds.org/atlas/';
 const expU=u=>u.replace(/^E:/,ERB).replace(/^W:/,'https://webeye.ophth.uiowa.edu/eyeforum/atlas/').replace(/^C:/,'https://upload.wikimedia.org/wikipedia/commons/').replace(/^http:\/\/(www\.)?eyerounds\.org\//,'https://eyerounds.org/');
 const srcUrl=it=>/^https?:/.test(it.u)?it.u:ERB+it.u;
 const secKey=(k,it)=>k+':'+srcUrl(it).replace(/^https?:\/\//,'');
-var CH_GONIO=CH;
+var CH_GONIO=CH; var DX_GONIO=DX;
 if(IMGSEC){ CH=DATA2[SEC].map(c=>({n:c.n,b:c.b,g:[[c.n,c.items.map(it=>[it.t,secKey(SEC,it),it.h,srcUrl(it),undefined,it])]]})); DX={}; QB=(QB2[SEC]||{}); }
 function switchSection(k){ if(!SECS[k]) return; try{LS0&&LS0.setItem('gonioscroll_section',k)}catch(e){} if(location.hash.slice(1)===k){ location.reload(); return; } location.hash=k; setTimeout(()=>location.reload(),30); }
 window.addEventListener('hashchange',()=>{const k=location.hash.slice(1); if(SECS[k]&&k!==SEC) location.reload();});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-sec]'); if(b){ e.preventDefault(); switchSection(b.dataset.sec); }});
-function sectionTiles(){ return `<div class="secs">${Object.entries(SECS).map(([k,s])=>`<button data-sec="${k}" class="${k===SEC?'cur':''}"><span>${s.icon}</span><b>${s.name}</b></button>`).join('')}</div>`; }
+function sectionTiles(){ return `<div class="secs">${Object.entries(SECS).map(([k,s])=>`<button data-sec="${k}" class="${k===SEC?'cur':''}"><span>${s.icon}</span><b>${s.name}</b></button>`).join('')}<button data-testall class="tall"><span>🎲</span><b>Test Everything</b></button></div>`; }
 const CDN="https://dvxi53ywm41y2.cloudfront.net/", SITE="https://gonioscopy.org/cases/";
 const feed=document.getElementById('feed');
 const slides=[]; // {type,el,ch,...}
@@ -1301,12 +1308,12 @@ document.getElementById('bSrc').onclick=()=>{const s=slides[cur];if(s&&s.type===
 const menu=document.getElementById('menu'), hxs=document.getElementById('hxs');
 function openMenu(){
   const chl=document.getElementById('chl'); const curCh=slides[cur]?slides[cur].ch:-1;
-  chl.innerHTML=`<div class="msecs">${Object.entries(SECS).map(([k,s])=>`<button data-sec="${k}" class="${k===SEC?'cur':''}">${s.icon} ${s.name}</button>`).join('')}</div>`+
+  chl.innerHTML=`<div class="msecs">${Object.entries(SECS).map(([k,s])=>`<button data-sec="${k}" class="${k===SEC?'cur':''}">${s.icon} ${s.name}</button>`).join('')}<button data-testall>🎲 Test Everything</button></div>`+
    (IMGSEC?'':`<button data-i="1" class="${curCh<0&&cur<=1?'cur':''}"><span class="num">0</span><span class="nm">A short history of gonioscopy</span></button>`)+
    CH.map((c,ci)=>`<button data-i="${c.start}" class="${ci===curCh?'cur':''}"><span class="num">${ci+1}</span><span class="nm">${esc(c.n)}${IMGSEC?'':`<span class="grp">${c.g.map(g=>esc(g[0])).join(' · ')}</span>`}</span><span class="ct">${c.g.reduce((a,g)=>a+g[1].length,0)}</span></button>`).join('');
   menu.classList.add('open');
 }
-document.getElementById('chl').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.sec)return;menu.classList.remove('open');go(+b.dataset.i)};
+document.getElementById('chl').onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.sec||b.hasAttribute('data-testall'))return;menu.classList.remove('open');go(+b.dataset.i)};
 document.getElementById('bMenu').onclick=openMenu; document.getElementById('chapbtn').onclick=openMenu;
 function openHx(rec){
   const hidden=document.body.classList.contains('quiz')&&!rec.el.classList.contains('shown');
@@ -1489,7 +1496,7 @@ function accepted(s){
   let list=(SYN[s.g]||[]).slice();
   const tn=norm(s.t), tw=tn.split(' ').filter(w=>w.length>=4);
   if(s.g==='Miscellaneous') list=list.filter(x=>norm(x).split(' ').some(w=>w.length>=4&&tw.some(t=>lev(t,w)<=1)));
-  list.push(tn); if(DX[s.g]) list.push(DX[s.g][0]);
+  list.push(tn); if(DX_GONIO[s.g]) list.push(DX_GONIO[s.g][0]);
   return list.map(norm).filter(Boolean);
 }
 function grade(s,answer){
@@ -1499,7 +1506,7 @@ function grade(s,answer){
   if(fuzzyHas(a,'normal') && !saysAbnormal && a.split(' ').length<=2) return false;
   return accepted(s).some(x=>fuzzyHas(a,x));
 }
-function answerLabel(s){ if(s.kind==='img') return s.t; return s.isNormal?'Normal (or a normal variant)':(DX[s.g]?DX[s.g][0]:s.t)}
+function answerLabel(s){ if(s.kind==='img') return s.t; return s.isNormal?'Normal (or a normal variant)':(DX_GONIO[s.g]?DX_GONIO[s.g][0]:s.t)}
 function pool(){
   const clips=slides.filter(s=>s.type==='clip');
   if(IMGSEC) return clips.filter(s=>{ s.isNormal=/^normal\b/i.test(s.t); return s.isNormal?T.normals:true; });
@@ -1510,14 +1517,40 @@ function pool(){
     return !['Basic Exam Technique','Angle Grading','Difficult Angles','Normal Angle'].includes(s.g);
   });
 }
+const GONIO_SKIP=['Basic Exam Technique','Angle Grading','Difficult Angles','Normal Angle'];
+let ALLPOOL=null;
+function allPool(){
+  if(ALLPOOL) return ALLPOOL; const out=[], seen=new Set();
+  CH_GONIO.forEach((c,ci)=>c.g.forEach(([g,items])=>items.forEach(([t,v,h,u])=>{ if(seen.has(v)) return; seen.add(v);
+    const isNormal=(NORMAL_GROUPS.includes(g)||NORMAL_EXTRA.includes(t))&&!NORMAL_EXCLUDE.includes(t);
+    if(!isNormal&&GONIO_SKIP.includes(g)) return;
+    out.push({sec:'gonio',kind:'video',t,v,h,u:'https://gonioscopy.org/cases/'+u,g,isNormal}); })));
+  Object.keys(DATA2).forEach(k=>DATA2[k].forEach(c=>c.items.forEach(it=>{ const v=secKey(k,it); if(seen.has(v)) return; seen.add(v);
+    out.push({sec:k,kind:'img',t:it.t,v,h:it.h,u:srcUrl(it),g:c.n,imgsAll:it.im.map(([iu,cap])=>[expU(iu),cap||'']),isNormal:/^normal\b/i.test(it.t)}); })));
+  return ALLPOOL=out;
+}
+function prepImgs(s){ if(s.kind==='img'&&s.imgsAll){ s.imgs=s.imgsAll.filter(x=>!isHid('i|'+x[0])); if(!s.imgs.length) s.imgs=s.imgsAll.slice(); } return s; }
+function pickBalanced(p,n){
+  const sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+  const by={}; p.forEach(s=>(by[s.sec]=by[s.sec]||[]).push(s)); Object.keys(by).forEach(k=>by[k]=sh(by[k]));
+  // normals: include a few if enabled, then fill evenly across sections
+  const out=[]; if(T.normals){ const nrm=sh(p.filter(s=>s.isNormal)); const k=Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(n*0.2))); out.push(...nrm.slice(0,k)); }
+  const pools=Object.keys(by).map(k=>by[k].filter(s=>!s.isNormal&&!out.includes(s)));
+  while(out.length<n&&pools.some(q=>q.length)){ const live=pools.filter(q=>q.length); const q=live[Math.floor(Math.random()*live.length)]; out.push(q.shift()); }
+  return sh(out);
+}
 function tShow(html){T.el.querySelector('.tin').innerHTML=html;T.el.scrollTop=0}
-function openTest(){ const s=slides[cur]; if(s&&s.type==='clip'&&s.vid)s.vid.pause(); qcard.classList.remove('open'); qpill.classList.remove('show'); T.el.classList.add('open'); tStart(); }
+function openTest(scope){ if(scope) T.scope=scope; const s=slides[cur]; if(s&&s.type==='clip'&&s.vid)s.vid.pause(); qcard.classList.remove('open'); qpill.classList.remove('show'); T.el.classList.add('open'); tStart(); }
 function closeTest(){ tStopVid(); T.el.classList.remove('open'); const s=slides[cur]; if(s&&s.type==='clip'&&s.vid){s.vid.play().catch(()=>{})} }
 function tStart(){
-  tShow(`<div class="th"><h2>🎲 Random test</h2><button class="tx" data-t="close">×</button></div>
-  <p class="tm2">You'll see ${IMGSEC?'cases':'clips'} from the ${SECS[SEC].name} section in a random order. Type the diagnosis, or <b>normal</b>. Marking accepts synonyms, abbreviations (PDS, PXF, NVI…) and small typos, and you can override it.</p>
-  <div class="tset"><span>Number of clips</span><div class="seg" id="tn">${[5,10,20,30].map(n=>`<button data-n="${n}" class="${n===T.n?'on':''}">${n}</button>`).join('')}</div></div>
-  <label class="tset"><span>Include normal ${IMGSEC?'cases':'angles'}</span><input type="checkbox" id="tnorm" ${T.normals?'checked':''}></label>
+  T.scope=T.scope||'sec'; T.secs=T.secs||Object.fromEntries(Object.keys(SECS).map(k=>[k,true]));
+  const all=T.scope==='all';
+  tShow(`<div class="th"><h2>🎲 ${all?'Test Everything':'Random test'}</h2><button class="tx" data-t="close">×</button></div>
+  <div class="tset"><span>What to test</span><div class="seg" id="tscope"><button data-sc="sec" class="${all?'':'on'}">${SECS[SEC].icon} ${SECS[SEC].name}</button><button data-sc="all" class="${all?'on':''}">🎲 Everything</button></div></div>
+  ${all?`<div class="tsecs">${Object.entries(SECS).map(([k,s])=>`<label><input type="checkbox" data-ts="${k}" ${T.secs[k]?'checked':''}> ${s.icon} ${s.name}</label>`).join('')}</div>`:''}
+  <p class="tm2">${all?'Any video or image from the ticked sections can come up, balanced across sections.':`You'll see ${IMGSEC?'cases':'clips'} from the ${SECS[SEC].name} section in a random order.`} Type the diagnosis, or <b>normal</b>. Marking accepts synonyms, abbreviations (PDS, PXF, NVI…) and small typos, and you can override it.</p>
+  <div class="tset"><span>Number of ${all?'items':IMGSEC?'cases':'clips'}</span><div class="seg" id="tn">${[5,10,20,30].map(n=>`<button data-n="${n}" class="${n===T.n?'on':''}">${n}</button>`).join('')}</div></div>
+  <label class="tset"><span>Include normal ${all?'examples':IMGSEC?'cases':'angles'}</span><input type="checkbox" id="tnorm" ${T.normals?'checked':''}></label>
   <label class="tset"><span>Show the history straight away<br><small>otherwise it's a hint you can reveal</small></span><input type="checkbox" id="thint" ${T.hint?'checked':''}></label>
   <button class="tgo" data-t="go">Start test →</button>${T.last?`<p class="tm2" style="margin-top:14px">Last score: ${T.last}</p>`:''}`);
 }
@@ -1525,7 +1558,7 @@ function tBegin(items){ T.items=items; T.i=0; T.res=[]; tQ(); }
 function tStopVid(){const v=T.el.querySelector('video'); if(v){v.pause();v.removeAttribute('src');v.load()}}
 function tQ(){
   const s=T.items[T.i]; tStopVid();
-  tShow(`<div class="th"><span class="tprog">${IMGSEC?'Case':'Clip'} ${T.i+1} / ${T.items.length} · ✓ ${T.res.filter(r=>r.ok).length}</span><button class="tx" data-t="quit">End</button></div>
+  tShow(`<div class="th"><span class="tprog">${T.scope==='all'&&s.sec?SECS[s.sec].icon+' '+SECS[s.sec].name+' · ':''}${T.scope==='all'?'Item':IMGSEC?'Case':'Clip'} ${T.i+1} / ${T.items.length} · ✓ ${T.res.filter(r=>r.ok).length}</span><button class="tx" data-t="quit">End</button></div>
   ${s.kind==='img'?`<div class="timgs">${s.imgs.map(([iu,c])=>`<figure><img src="${esc(iu)}" alt=""></figure>`).join('')}</div>`:`<div class="tvid"><video playsinline muted loop autoplay src="${CDN+s.v}"></video></div>
   <div class="seek tseek"><input type="range" min="0" max="1000" value="0"><div class="srow"><button class="skip" data-t="b5">⟲ 5s</button><span class="tm">0:00</span><span class="tspd"><button class="skip" data-t="sd">−</button> <b class="tsv">${rate}×</b> <button class="skip" data-t="su">+</button></span><button class="skip" data-t="snd">🔇</button><button class="skip" data-t="f5">5s ⟳</button></div></div>`}
   <div class="thx">${T.hint?hx(s):`<button class="tlink" data-t="hint">Show history (hint)</button>`}</div>
@@ -1568,11 +1601,12 @@ function tSummary(){
   T.missed=missed;
 }
 T.el.addEventListener('click',e=>{
-  const b=e.target.closest('[data-t],[data-n]'); if(!b)return;
+  const b=e.target.closest('[data-t],[data-n],[data-sc]'); if(!b)return;
+  if(b.dataset.sc){ T.scope=b.dataset.sc; tStart(); return; }
   if(b.dataset.n){T.n=+b.dataset.n;T.el.querySelectorAll('#tn button').forEach(x=>x.classList.toggle('on',x===b));return}
   const a=b.dataset.t, v=T.el.querySelector('video');
   if(a==='close')closeTest();
-  else if(a==='go'){T.normals=T.el.querySelector('#tnorm').checked;T.hint=T.el.querySelector('#thint').checked;const p=pool().filter(s=>!caseHidden(s)),sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);const nrm=sh(p.filter(s=>s.isNormal)),dis=sh(p.filter(s=>!s.isNormal));const k=T.normals?Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(T.n*0.25))):0;tBegin(sh(nrm.slice(0,k).concat(dis.slice(0,T.n-k))))}
+  else if(a==='go'){T.normals=T.el.querySelector('#tnorm').checked;T.hint=T.el.querySelector('#thint').checked;if(T.scope==='all'){ const p=allPool().filter(s=>T.secs[s.sec]&&!caseHidden(s)).map(prepImgs); if(!p.length){ toast('Tick at least one section'); return; } tBegin(pickBalanced(p,T.n)); return; } const p=pool().filter(s=>!caseHidden(s)),sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);const nrm=sh(p.filter(s=>s.isNormal)),dis=sh(p.filter(s=>!s.isNormal));const k=T.normals?Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(T.n*0.25))):0;tBegin(sh(nrm.slice(0,k).concat(dis.slice(0,T.n-k))))}
   else if(a==='hint')T.el.querySelector('.thx').innerHTML=hx(T.items[T.i]);
   else if(a==='skip')tAnswer('',true);
   else if(a==='next'){T.i++; T.i<T.items.length?tQ():tSummary()}
@@ -1580,15 +1614,17 @@ T.el.addEventListener('click',e=>{
   else if(a==='quit'){T.res.length?tSummary():tStart()}
   else if(a==='new')tStart();
   else if(a==='retry')tBegin(T.missed.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]));
-  else if(a==='watch'){const s=T.res[+b.dataset.i].s;closeTest();go(slides.indexOf(s))}
+  else if(a==='watch'){const s=T.res[+b.dataset.i].s; const j=slides.findIndex(x=>x.v===s.v); if(j>=0){closeTest();go(j);} else { try{sessionStorage.setItem('gs_jump',s.v)}catch(e){} switchSection(s.sec); } }
   else if(v&&a==='b5')v.currentTime=Math.max(0,v.currentTime-5);
   else if(v&&a==='f5')v.currentTime=Math.min(v.duration-0.05,v.currentTime+5);
   else if(v&&(a==='su'||a==='sd')){setRate(rate+(a==='su'?0.25:-0.25));v.playbackRate=rate;T.el.querySelector('.tsv').textContent=rate+'×'}
   else if(v&&a==='snd'){muted=!muted;v.muted=muted;b.textContent=muted?'🔇':'🔊';updMute()}
 });
+T.el.addEventListener('change',e=>{ const c=e.target.closest('[data-ts]'); if(c) T.secs[c.dataset.ts]=c.checked; });
 T.el.addEventListener('keydown',e=>{e.stopPropagation(); if(e.key==='Escape')closeTest()});
-document.getElementById('bTest').onclick=openTest; document.getElementById('bTest2').onclick=openTest;
-document.getElementById('startTest').onclick=openTest;
+document.getElementById('bTest').onclick=()=>openTest(); document.getElementById('bTest2').onclick=()=>openTest();
+document.getElementById('startTest').onclick=()=>openTest('sec');
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-testall]'); if(b){ e.preventDefault(); document.getElementById('menu').classList.remove('open'); openTest('all'); } });
 
 // ---------- Progress screen + per-clip stats ----------
 const PG={el:document.getElementById('prog')};
@@ -1767,7 +1803,9 @@ window.SYNC=SYNC;
   idleT=setTimeout(sleep,2500);
 })();
 // resume
-const saved=LS?+LS.getItem(IDXKEY):0;
+let jumpKey=null; try{ jumpKey=sessionStorage.getItem('gs_jump'); sessionStorage.removeItem('gs_jump'); }catch(e){}
+const jumpIdx=jumpKey?slides.findIndex(x=>x.v===jumpKey):-1;
+const saved=jumpIdx>=0?jumpIdx:(LS?+LS.getItem(IDXKEY):0);
 if(saved>1&&saved<slides.length){go(saved);const s=slides[saved];toast('Resumed'+(s.type==='clip'?` at clip ${s.n}`:''),'Start over',()=>go(0))}
 else activate(0);
 </script>
