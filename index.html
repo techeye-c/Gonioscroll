@@ -112,8 +112,9 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 #qcard.answered .nav{display:flex}
 #qcard .nav button{padding:8px 14px;border-radius:10px;background:var(--acc);color:#081210;font-weight:700}
 #qcard .nav button.sec{background:#1c252f;color:var(--fg)}
-#qpill{position:fixed;left:18px;bottom:calc(14px + env(safe-area-inset-bottom));z-index:29;background:var(--acc2);color:#151005;font-weight:700;font-size:13px;border-radius:99px;padding:8px 14px;display:none;box-shadow:0 4px 16px #000a}
-#qpill.show{display:block}
+#qpill{position:static;background:var(--acc2);color:#151005;font-weight:700;font-size:13px;border-radius:99px;padding:7px 14px;display:none;margin:4px 0 6px;animation:pillin .3s ease-out}
+#qpill.show{display:inline-block}
+@keyframes pillin{from{transform:translateY(8px);opacity:0}}
 #bQ{display:none}
 .quiz #bQ{display:flex}
 .quiz #chapbtn span{display:none}
@@ -243,7 +244,6 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
   .clip .seek{order:2;padding:4px 18px 8px}
   .card{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
   #qcard{bottom:calc(64px + env(safe-area-inset-bottom))}
-  #qpill{bottom:calc(66px + env(safe-area-inset-bottom))}
   #toast{bottom:calc(72px + env(safe-area-inset-bottom))}
 }
 }
@@ -890,7 +890,7 @@ function addCard(html,ch){const s=document.createElement('section');s.className=
 addCard(`<div class="k">Atlas of Gonioscopy · swipe edition</div>
 <h1>From the normal angle to pathology, one clip at a time.</h1>
 <p>${total} clips from Wallace Alward's <a href="https://gonioscopy.org" target="_blank" rel="noopener">gonioscopy.org</a> (University of Iowa), ordered as a course: technique → normal anatomy → grading → difficult angles → disease.</p>
-<p class="meta">Swipe or use ↑/↓ · tap a video to pause · drag the bar under each clip to scrub (←/→ jumps 5s, , and . step frames) · −/+ change speed by 0.25× · tap the history to read it in full · turn on <b>🩺 quiz</b> to hide the diagnosis and get multiple-choice questions that pop up during each clip (answer then or later via <b>?</b>).</p>
+<p class="meta">Swipe or use ↑/↓ · tap a video to pause · drag the bar under each clip to scrub (←/→ jumps 5s, , and . step frames) · −/+ change speed by 0.25× · tap the history to read it in full · turn on <b>🩺 quiz</b> to hide the diagnosis and get multiple-choice questions on each clip. Tap <b>❓ questions waiting</b> whenever you're ready.</p>
 <p><button id="startTest" class="tgo" style="max-width:280px">🎲 Random test: name 10 clips</button></p><div class="hint">↓ or swipe up to begin the course</div>`,-1);
 addCard(`<div class="k">Chapter 0 · Background</div>
 <h1>A short history of gonioscopy</h1>
@@ -997,7 +997,7 @@ document.getElementById('sUp').onclick=()=>{setRate(rate+0.25);toast('Speed '+ra
 document.getElementById('sDown').onclick=()=>{setRate(rate-0.25);toast('Speed '+rate+'×')};
 document.getElementById('sVal').onclick=()=>{setRate(1);toast('Speed 1×')};
 setRate(LS?(+LS.getItem('gonioscroll_rate')||1):1);
-document.getElementById('bQuiz').onclick=()=>{const on=document.body.classList.toggle('quiz');document.getElementById('bQuiz').classList.toggle('on',on);document.querySelectorAll('.slide.shown').forEach(e=>e.classList.remove('shown'));if(!on){qcard.classList.remove('open');qpill.classList.remove('show')}else onSlideChange(slides[cur]);toast(on?'Quiz on: questions pop up during each clip':'Quiz off')};
+document.getElementById('bQuiz').onclick=()=>{const on=document.body.classList.toggle('quiz');document.getElementById('bQuiz').classList.toggle('on',on);document.querySelectorAll('.slide.shown').forEach(e=>e.classList.remove('shown'));if(!on){qcard.classList.remove('open');qpill.classList.remove('show')}else onSlideChange(slides[cur]);toast(on?'Quiz on: tap “questions waiting” when you’re ready':'Quiz off')};
 document.getElementById('bSrc').onclick=()=>{const s=slides[cur];if(s&&s.type==='clip')window.open(SITE+s.u,'_blank','noopener')};
 const menu=document.getElementById('menu'), hxs=document.getElementById('hxs');
 function openMenu(){
@@ -1077,7 +1077,11 @@ qcard.addEventListener('click',e=>{
   else if(a==='min') closeQ(true);
 });
 function pending(s){const qs=questionsFor(s),a=QS[s.n]||[];return qs.findIndex((q,i)=>a[i]==null)}
-function closeQ(minimise){qcard.classList.remove('open'); const s=qOpenFor; qOpenFor=null; if(s&&s===slides[cur]&&pending(s)>=0){qpill.textContent=minimise?'❓ Question waiting ▴':'❓ Answer later ▴';qpill.classList.add('show')}}
+function pillFor(s){ if(!s||s.type!=='clip'||!quizOn()){qpill.classList.remove('show');return}
+  const qs=questionsFor(s), a=QS[s.n]||[], left=qs.filter((q,i)=>a[i]==null).length;
+  if(!left){qpill.classList.remove('show');return}
+  qpill.textContent=`❓ ${left} question${left>1?'s':''} waiting · tap when ready`; const info=s.el.querySelector('.info'), hx=info.querySelector('.hx'); if(qpill.parentNode!==info||qpill.nextSibling!==hx) info.insertBefore(qpill,hx); qpill.classList.add('show'); }
+function closeQ(){qcard.classList.remove('open'); const s=qOpenFor; qOpenFor=null; if(s&&s===slides[cur]) pillFor(s);}
 qpill.onclick=()=>{const s=slides[cur]; if(s&&s.type==='clip'){const p=pending(s);showQ(s,p<0?0:p)}};
 document.getElementById('bQ').onclick=()=>{const s=slides[cur]; if(s&&s.type==='clip'){const p=pending(s);showQ(s,p<0?0:p)}};
 function quizOn(){return document.body.classList.contains('quiz')}
@@ -1085,13 +1089,9 @@ function onSlideChange(s){
   qcard.classList.remove('open'); qOpenFor=null; qpill.classList.remove('show');
   if(!quizOn()||s.type!=='clip')return;
   if((QS[s.n]||[]).some((v,i)=>v!=null&&questionsFor(s)[i].dx)) s.el.classList.add('shown');
-  if(s.qPopped&&pending(s)>=0) qpill.classList.add('show');
+  pillFor(s);
 }
-// pop up during playback: after min(6s, 40% of clip)
-(function qtick(){const s=slides[cur];
-  if(quizOn()&&s&&s.type==='clip'&&!s.qPopped&&s.loaded&&isFinite(s.vid.duration)&&s.vid.duration>0&&!qcard.classList.contains('open')){
-    if(s.vid.currentTime>=Math.min(6,0.4*s.vid.duration)&&pending(s)>=0) showQ(s,pending(s));
-  } setTimeout(qtick,400)})();
+// questions open only when you tap the 'questions waiting' button or ?
 score();
 // ---------- Random test ----------
 const T={el:document.getElementById('test'),items:[],i:0,res:[],n:10,normals:true,hint:false};
