@@ -115,8 +115,8 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 #qpill{position:static;background:var(--acc2);color:#151005;font-weight:700;font-size:13px;border-radius:99px;padding:7px 14px;display:none;margin:4px 0 6px;animation:pillin .3s ease-out}
 #qpill.show{display:inline-block}
 @keyframes pillin{from{transform:translateY(8px);opacity:0}}
-#bQ{display:none}
-.quiz #bQ{display:flex}
+#bQ,#bReveal{display:none}
+.quiz #bQ,.quiz #bReveal{display:flex}
 .quiz #chapbtn span{display:none}
 #score{color:var(--acc2);font-weight:700;margin-left:8px;display:none}
 .quiz #score{display:inline}
@@ -246,7 +246,6 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
   #qcard{bottom:calc(64px + env(safe-area-inset-bottom))}
   #toast{bottom:calc(72px + env(safe-area-inset-bottom))}
 }
-}
 
 /* ---------- image sections ---------- */
 .imgsec #speed,.imgsec #bMute{display:none!important}
@@ -308,6 +307,23 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 #lb .lbcapw{padding:8px 14px 0;background:#0b0f13;color:#c9d1d8;font-size:13px;line-height:1.4;max-height:28vh;overflow:auto}
 #lb .lbcapw:empty{display:none}
 #hxtext{max-height:62vh;overflow:auto;line-height:1.5}
+
+@media (max-width:700px){
+  body.quiz:not(.imgsec) .rail{gap:2px;padding-left:3px;padding-right:3px}
+  body.quiz:not(.imgsec) .rail button{width:min(42px,9.3vw);height:min(42px,9.3vw);font-size:min(18px,4.2vw)}
+  body.quiz:not(.imgsec) .speed{height:min(42px,9.3vw)}
+  body.quiz:not(.imgsec) .speed button{width:min(34px,7.6vw)}
+  body.quiz:not(.imgsec) #sVal{min-width:24px;font-size:12px}
+}
+
+.slide.gone{display:none!important}
+.car figure.gonefig{display:none!important}
+.statrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.statrow .stat{margin-top:0}
+.hidebtn{font-size:11.5px;color:#8b96a1;border:1px solid var(--line);border-radius:99px;padding:3px 9px;white-space:nowrap}
+.hidebtn:hover{color:#f87171;border-color:#f8717166}
+.hidlist>div{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.hidlist small{color:var(--mute);display:block}
 </style>
 </head>
 <body>
@@ -319,6 +335,7 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
   <div class="speed" id="speed"><button id="sUp" title="Faster (+0.25×, key ])">+</button><span id="sVal">1×</span><small>speed</small><button id="sDown" title="Slower (−0.25×, key [)">−</button></div>
   <button id="bQuiz" title="Quiz mode: history first, diagnosis hidden (Q)">🩺<small>quiz</small></button>
   <button id="bQ" title="Questions for this clip (?)">?<small>quiz Q</small></button>
+  <button id="bReveal" title="Reveal / hide the answer (R or Enter)">👁<small>reveal</small></button>
   <button id="bSrc" title="Open case on gonioscopy.org">↗<small>source</small></button>
   <button id="bMenu" title="Chapters (C)">☰<small>jump</small></button>
   <button id="bProg2" class="ph" title="Progress">📊<small>progress</small></button>
@@ -329,7 +346,7 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 <div id="qcard"></div><button id="qpill">❓ Question waiting ▴</button>
 <div id="prog" role="dialog" aria-label="Progress"><div class="tin"></div></div>
 <div id="test" role="dialog" aria-label="Random test"><div class="tin"></div></div>
-<div id="lb"><button class="lbx" aria-label="Close">×</button><div class="lbin"><img alt=""></div><div class="lbcapw"></div><div class="lbbar"><button data-l="-1">‹</button><span class="lbn"></span><button data-l="1">›</button><span class="lbcap"></span><button data-l="z">1:1</button></div></div>
+<div id="lb"><button class="lbx" aria-label="Close">×</button><div class="lbin"><img alt=""></div><div class="lbcapw"></div><div class="lbbar"><button data-l="-1">‹</button><span class="lbn"></span><button data-l="1">›</button><span class="lbcap"></span><button data-l="z">1:1</button><button data-l="hide" title="Remove this image">🚫</button></div></div>
 <div id="toast"><span id="toastmsg"></span><button id="toastbtn"></button></div>
 <script>
 var CH = [
@@ -1146,18 +1163,18 @@ addCard(`<div class="k">${SECS[SEC].icon} ${SECS[SEC].name} Scroll</div>
 function buildImg(t,v,h,u,obj,gname,ci,n){
   const el=document.createElement('section'); el.className='slide clip';
   const ims=obj.im.map(([iu,cap])=>[expU(iu),cap||'']);
-  el.innerHTML=`<div class="col"><div class="vwrap iwrap"><div class="car">${ims.map(([iu,cap],k)=>`<figure><img data-src="${esc(iu)}" alt="${esc(t)} image ${k+1}" decoding="async">${cap?`<figcaption>${esc(cap)}</figcaption>`:''}</figure>`).join('')}</div>${ims.length>1?`<div class="dots">${ims.map((_,k)=>`<i class="${k?'':'on'}"></i>`).join('')}</div><div class="imgn">1 / ${ims.length}</div>`:''}<div class="spin"></div><div class="zhint">🔍 tap to zoom</div></div>
+  el.innerHTML=`<div class="col"><div class="vwrap iwrap"><div class="car">${ims.map(([iu,cap],k)=>`<figure><img data-src="${esc(iu)}" alt="${esc(t)} image ${k+1}" decoding="async">${cap?`<figcaption>${esc(cap)}</figcaption>`:''}</figure>`).join('')}</div><div class="dots"></div><div class="imgn"></div><div class="spin"></div><div class="zhint">🔍 tap to zoom</div></div>
   <div class="info"><span class="chip">${esc(gname)}</span>
   <div class="title">${esc(t)}</div><button class="reveal">Tap to reveal diagnosis</button>
   <div class="hx${h?'':' none'}">${h?'<b>Description</b>'+esc(h):'No description — describe what you see.'}</div><button class="more">Show more ▾</button><button class="showdesc">👁 Show description (may give away the answer)</button>
-  <div class="credit">📷 ${obj.src==='wm'?(/^Wikimedia/.test(obj.cr||'')?'':'Wikimedia Commons · '):'EyeRounds.org, Univ. of Iowa · '}${esc(obj.cr||'')}${obj.src==='er'?' · CC BY-NC-ND 3.0':''} · <a href="${esc(u)}" target="_blank" rel="noopener">source ↗</a></div><div class="stat"></div></div></div>`;
+  <div class="credit">📷 ${obj.src==='wm'?(/^Wikimedia/.test(obj.cr||'')?'':'Wikimedia Commons · '):'EyeRounds.org, Univ. of Iowa · '}${esc(obj.cr||'')}${obj.src==='er'?' · CC BY-NC-ND 3.0':''} · <a href="${esc(u)}" target="_blank" rel="noopener">source ↗</a></div><div class="statrow"><div class="stat"></div><button class="hidebtn" title="Remove this case from the pile and quizzes (X)">🚫 Remove</button></div></div></div>`;
   feed.appendChild(el);
-  const rec={type:'clip',kind:'img',qk:v,el,ch:ci,t,v,h,u,g:gname,n,vid:null,imgs:ims,ik:0,loaded:false,seenSet:new Set()};
+  const rec={type:'clip',kind:'img',qk:v,el,ch:ci,t,v,h,u,g:gname,n,vid:null,imgs:ims,imgsAll:ims,ik:0,loaded:false,seenSet:new Set()};
   slides.push(rec);
   const car=el.querySelector('.car');
-  car.addEventListener('scroll',()=>{const k=Math.round(car.scrollLeft/Math.max(1,car.clientWidth)); if(k!==rec.ik){rec.ik=k; el.querySelectorAll('.dots i').forEach((d,j)=>d.classList.toggle('on',j===k)); const c=el.querySelector('.imgn'); if(c)c.textContent=(k+1)+' / '+ims.length; if(slides[cur]===rec) seeImg(rec,k);}},{passive:true});
-  car.addEventListener('click',e=>{const f=e.target.closest('figure'); if(!f)return; openLB(rec,[...car.children].indexOf(f));});
-  el.querySelector('.reveal').addEventListener('click',()=>{ el.classList.add('shown'); requestAnimationFrame(()=>markOver(rec)); });
+  car.addEventListener('scroll',()=>{const k=Math.round(car.scrollLeft/Math.max(1,car.clientWidth)); if(k!==rec.ik&&k<rec.imgs.length){rec.ik=k; el.querySelectorAll('.dots i').forEach((d,j)=>d.classList.toggle('on',j===k)); const c=el.querySelector('.imgn'); if(c)c.textContent=(k+1)+' / '+rec.imgs.length; if(slides[cur]===rec) seeImg(rec,k);}},{passive:true});
+  car.addEventListener('click',e=>{const f=e.target.closest('figure'); if(!f)return; const vis=[...car.children].filter(x=>!x.classList.contains('gonefig')); openLB(rec,Math.max(0,vis.indexOf(f)));});
+  el.querySelector('.reveal').addEventListener('click',()=>{ el.classList.add('shown'); requestAnimationFrame(()=>markOver(rec)); paintReveal(); });
   const hxEl=el.querySelector('.hx'), moreEl=el.querySelector('.more');
   const toggleHx=()=>{ const open=hxEl.classList.toggle('open'); moreEl.textContent=open?'Show less ▴':'Show more ▾'; if(!open) el.querySelector('.info').scrollTop=0; };
   hxEl.addEventListener('click',()=>{ if(hxEl.classList.contains('over')||hxEl.classList.contains('open')) toggleHx(); });
@@ -1181,7 +1198,7 @@ CH.forEach((c,ci)=>{
     <div class="seek"><input type="range" min="0" max="1000" value="0" step="1" aria-label="Scrub through video"><div class="srow"><button class="skip" data-d="-5">⟲ 5s</button><span class="tm">0:00 / 0:00</span><button class="skip" data-d="5">5s ⟳</button></div></div>
     <div class="info"><span class="chip">${esc(gname)}</span>${also?`<span class="chip also">also: ${esc(also)}</span>`:''}
     <div class="title">${esc(t)}</div><button class="reveal">Tap to reveal diagnosis</button>
-    <div class="hx${h?'':' none'}">${h?'<b>History</b>'+esc(h):'No history given — describe what you see.'}</div><div class="stat"></div></div></div>`;
+    <div class="hx${h?'':' none'}">${h?'<b>History</b>'+esc(h):'No history given — describe what you see.'}</div><div class="statrow"><div class="stat"></div><button class="hidebtn" title="Remove this case from the pile and quizzes (X)">🚫 Remove</button></div></div></div>`;
     feed.appendChild(el);
     const rec={type:'clip',kind:'video',qk:n,el,ch:ci,t,v,h,u,g:gname,n,vid:el.querySelector('video'),loaded:false};
     slides.push(rec);
@@ -1203,7 +1220,7 @@ CH.forEach((c,ci)=>{
     el.querySelectorAll('.skip').forEach(b=>b.addEventListener('click',()=>seekBy(rec,+b.dataset.d)));
     vid.addEventListener('loadedmetadata',()=>paintSeek(rec));
     vid.addEventListener('ratechange',()=>{ if(vid.playbackRate!==rate) vid.playbackRate=rate; });
-    el.querySelector('.reveal').addEventListener('click',()=>el.classList.add('shown'));
+    el.querySelector('.reveal').addEventListener('click',()=>{ el.classList.add('shown'); paintReveal(); });
     el.querySelector('.hx').addEventListener('click',()=>openHx(rec));
   }));
 });
@@ -1270,7 +1287,7 @@ function activate(i){
 }
 const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting&&e.intersectionRatio>=0.6)activate(slides.findIndex(s=>s.el===e.target))})},{root:feed,threshold:[0.6]});
 slides.forEach(s=>io.observe(s.el));
-function go(i,smooth){ i=Math.max(0,Math.min(slides.length-1,i)); slides[i].el.scrollIntoView({behavior:smooth?'smooth':'auto'}); }
+function go(i,smooth){ i=Math.max(0,Math.min(slides.length-1,i)); if(slides[i]&&slides[i].el.classList.contains('gone')&&typeof nextVisible==='function') i=nextVisible(i,i>=cur?1:-1); slides[i].el.scrollIntoView({behavior:smooth?'smooth':'auto'}); }
 
 // --- controls
 function updMute(){const b=document.getElementById('bMute');b.innerHTML=(muted?'🔇':'🔊')+'<small>sound</small>';b.classList.toggle('on',!muted)}
@@ -1314,10 +1331,11 @@ document.addEventListener('keydown',e=>{
   else if(k==='ArrowLeft'||k==='h'){e.preventDefault();const s=slides[cur];if(s.type==='clip'){ if(s.vid)seekBy(s,-5); else stepImg(s,-1); }}
   else if(k==='.'||k===','){const s=slides[cur];if(s.type==='clip'&&s.vid){s.vid.pause();s.el.classList.add('paused');seekBy(s,k==='.'?1/30:-1/30)}}
   else if(k==='q')document.getElementById('bQuiz').click();
+  else if(k==='x'||k==='X'){ const s=slides[cur]; if(s&&s.type==='clip') hideCase(s); }
   else if(k==='c')openMenu();
   else if(k==='?'||k==='/')document.getElementById('bQ').click();
   else if(qcard.classList.contains('open')&&/^[1-4]$/.test(k)){const b=qcard.querySelectorAll('.opt')[+k-1];b&&b.click()}
-  else if(k==='Enter'){const s=slides[cur];if(s.type==='clip')s.el.classList.add('shown')}
+  else if((k==='Enter'&&e.target.tagName!=='BUTTON')||k==='r'||k==='R'){ if(quizOn()){ e.preventDefault(); toggleReveal(); } }
 });
 
 // ---------- MCQs (quiz mode) ----------
@@ -1362,7 +1380,7 @@ function mark(chosen){qcard.querySelectorAll('.opt').forEach(b=>{const o=+b.data
 qcard.addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b||!qOpenFor)return; const s=qOpenFor;
   if(b.classList.contains('opt')){ const o=+b.dataset.o; TRK.q(s.v,o===0); (QS[s.qk]=QS[s.qk]||[])[qIdx]=o; saveQS(); score();
-    qcard.classList.add('answered'); mark(o); if(questionsFor(s)[qIdx].dx){ s.el.classList.add('shown'); if(s.kind==='img') requestAnimationFrame(()=>markOver(s)); } return; }
+    qcard.classList.add('answered'); mark(o); if(questionsFor(s)[qIdx].dx){ s.el.classList.add('shown'); paintReveal(); if(s.kind==='img') requestAnimationFrame(()=>markOver(s)); } return; }
   const a=b.dataset.a;
   if(a==='retry'){ (QS[s.qk]||[])[qIdx]=null; saveQS(); score(); showQ(s,qIdx); return; }
   if(a==='next') showQ(s,qIdx+1);
@@ -1379,6 +1397,7 @@ qpill.onclick=()=>{const s=slides[cur]; if(s&&s.type==='clip'){const p=pending(s
 document.getElementById('bQ').onclick=()=>{const s=slides[cur]; if(s&&s.type==='clip'){const p=pending(s);showQ(s,p<0?0:p)}};
 function quizOn(){return document.body.classList.contains('quiz')}
 function onSlideChange(s){
+  if(typeof paintReveal==='function') paintReveal();
   qcard.classList.remove('open'); qOpenFor=null; qpill.classList.remove('show');
   if(!quizOn()||s.type!=='clip')return;
   if((QS[s.qk]||[]).some((v,i)=>v!=null&&questionsFor(s)[i].dx)) s.el.classList.add('shown');
@@ -1388,15 +1407,62 @@ function onSlideChange(s){
 // ---------- image lightbox ----------
 const LB={el:document.getElementById('lb'),rec:null,k:0};
 function openLB(rec,k){ LB.rec=rec; LB.k=k||0; LB.el.classList.remove('zoom'); paintLB(); LB.el.classList.add('open'); }
-function paintLB(){ const [u,c]=LB.rec.imgs[LB.k]; LB.el.querySelector('img').src=u; LB.el.querySelector('.lbn').textContent=(LB.k+1)+' / '+LB.rec.imgs.length; const hide=document.body.classList.contains('quiz')&&!LB.rec.el.classList.contains('shown'); LB.el.querySelector('.lbcapw').textContent=hide?'':c; LB.el.querySelector('.lbcap').textContent=''; LB.el.querySelectorAll('[data-l="-1"],[data-l="1"]').forEach(b=>b.style.visibility=LB.rec.imgs.length>1?'visible':'hidden'); if(slides[cur]===LB.rec) seeImg(LB.rec,LB.k); }
+function paintLB(){ const [u,c]=LB.rec.imgs[LB.k]; LB.el.querySelector('img').src=u; LB.el.querySelector('.lbn').textContent=(LB.k+1)+' / '+LB.rec.imgs.length; const hide=document.body.classList.contains('quiz')&&!LB.rec.el.classList.contains('shown'); LB.el.querySelector('.lbcapw').textContent=hide?'':c; LB.el.querySelector('.lbcap').textContent=''; LB.el.querySelectorAll('[data-l="-1"],[data-l="1"]').forEach(b=>b.style.visibility=LB.rec.imgs.length>1?'visible':'hidden'); LB.el.querySelector('[data-l="hide"]').title=LB.rec.imgs.length>1?'Remove this image':'Remove this case'; if(slides[cur]===LB.rec) seeImg(LB.rec,LB.k); }
 function lbStep(d){ if(!LB.rec) return; LB.k=(LB.k+d+LB.rec.imgs.length)%LB.rec.imgs.length; paintLB(); }
 function closeLB(){ LB.el.classList.remove('open'); if(LB.rec&&LB.rec.kind==='img'&&slides[cur]===LB.rec){ const car=LB.rec.el.querySelector('.car'); car.scrollTo({left:LB.k*car.clientWidth}); } }
-LB.el.addEventListener('click',e=>{ const b=e.target.closest('[data-l]'); if(e.target.closest('.lbx')){ closeLB(); return; } if(!b) { if(e.target.tagName==='IMG') LB.el.classList.toggle('zoom'); return; } const a=b.dataset.l; if(a==='z') LB.el.classList.toggle('zoom'); else lbStep(+a); });
+LB.el.addEventListener('click',e=>{ const b=e.target.closest('[data-l]'); if(e.target.closest('.lbx')){ closeLB(); return; } if(!b) { if(e.target.tagName==='IMG') LB.el.classList.toggle('zoom'); return; } const a=b.dataset.l; if(a==='z') LB.el.classList.toggle('zoom'); else if(a==='hide') hideImage(LB.rec,LB.k); else lbStep(+a); });
 let lbx0=null; LB.el.addEventListener('touchstart',e=>{ if(e.touches.length===1&&!LB.el.classList.contains('zoom')) lbx0=e.touches[0].clientX; else lbx0=null; },{passive:true});
 LB.el.addEventListener('touchend',e=>{ if(lbx0==null) return; const dx=e.changedTouches[0].clientX-lbx0; if(Math.abs(dx)>50) lbStep(dx<0?1:-1); lbx0=null; },{passive:true});
 
+
+// ---------- quick reveal (quiz mode) ----------
+function toggleReveal(){ const s=slides[cur]; if(!s||s.type!=='clip') return;
+  const on=!s.el.classList.contains('shown');
+  s.el.classList.toggle('shown',on); if(!on) s.el.classList.remove('descshown');
+  if(s.kind==='img') requestAnimationFrame(()=>markOver(s));
+  paintReveal(); toast(on?'Answer revealed':'Answer hidden'); }
+function paintReveal(){ const s=slides[cur], b=document.getElementById('bReveal'); const on=!!(s&&s.el.classList.contains('shown')); b.classList.toggle('on',on); b.innerHTML=(on?'🙈':'👁')+'<small>'+(on?'hide':'reveal')+'</small>'; }
+document.getElementById('bReveal').onclick=e=>{ toggleReveal(); e.currentTarget.blur(); };
 // questions open only when you tap the 'questions waiting' button or ?
 score();
+// ---------- removed (hidden) cases and images ----------
+const HKEY='gonioscroll_hidden';
+let HID={}; try{ HID=JSON.parse(localStorage.getItem(HKEY)||'{}')||{}; }catch(e){ HID={}; }
+function saveHID(){ try{ localStorage.setItem(HKEY,JSON.stringify(HID)); }catch(e){} if(window.SYNC) SYNC.soon(); }
+const isHid=k=>!!(HID[k]&&HID[k].h);
+function setHid(k,h,meta){ HID[k]={...(HID[k]||{}),...(meta||{}),h:h?1:0,t:Date.now()}; saveHID(); }
+function caseHidden(s){ return !!(s&&s.type==='clip'&&isHid('c|'+s.v)); }
+function mergeHidden(o){ if(!o) return; for(const [k,v] of Object.entries(o)){ if(!HID[k]||(v.t||0)>(HID[k].t||0)) HID[k]=v; } try{ localStorage.setItem(HKEY,JSON.stringify(HID)); }catch(e){} applyHidden(); }
+function paintDots(s){ const n=s.imgs.length, dots=s.el.querySelector('.dots'), cnt=s.el.querySelector('.imgn');
+  if(dots){ dots.innerHTML=s.imgs.map((_,k)=>`<i class="${k===(s.ik||0)?'on':''}"></i>`).join(''); dots.style.display=n>1?'':'none'; }
+  if(cnt){ cnt.textContent=((s.ik||0)+1)+' / '+n; cnt.style.display=n>1?'':'none'; } }
+function refreshImgs(s){
+  const figs=[...s.el.querySelectorAll('.car figure')];
+  let vis=s.imgsAll.map((x,k)=>({x,k})).filter(o=>!isHid('i|'+o.x[0]));
+  if(!vis.length) vis=s.imgsAll.map((x,k)=>({x,k}));
+  figs.forEach((f,k)=>f.classList.toggle('gonefig',!vis.some(o=>o.k===k)));
+  s.imgs=vis.map(o=>o.x); s.ik=0; const car=s.el.querySelector('.car'); if(car) car.scrollLeft=0; paintDots(s);
+}
+function applyHidden(){ slides.forEach(s=>{ if(s.type!=='clip') return; s.el.classList.toggle('gone',caseHidden(s)); if(s.kind==='img') refreshImgs(s); }); }
+function nextVisible(i,dir){ let j=i; while(slides[j]&&slides[j].el.classList.contains('gone')) j+=dir; if(!slides[j]){ j=i; while(slides[j]&&slides[j].el.classList.contains('gone')) j-=dir; } return Math.max(0,Math.min(slides.length-1,j)); }
+function hideCase(s){
+  if(!s||s.type!=='clip') return; const i=slides.indexOf(s);
+  qcard.classList.remove('open'); qpill.classList.remove('show');
+  setHid('c|'+s.v,1,{n:s.t,s:SEC}); s.el.classList.add('gone');
+  const j=nextVisible(i+1,1); cur=-1; go(j); activate(j);
+  toast('Removed from the pile (and quizzes)','Undo',()=>{ setHid('c|'+s.v,0); s.el.classList.remove('gone'); go(i); });
+}
+function hideImage(s,k){
+  if(!s||s.kind!=='img') return; if(s.imgs.length<=1){ closeLB(); hideCase(s); return; }
+  const url=s.imgs[k][0]; setHid('i|'+url,1,{n:s.t,s:SEC,img:k+1}); refreshImgs(s);
+  if(LB.rec===s){ LB.k=Math.min(k,s.imgs.length-1); paintLB(); }
+  toast('Image removed','Undo',()=>{ setHid('i|'+url,0); refreshImgs(s); if(LB.rec===s&&LB.el.classList.contains('open')) paintLB(); });
+}
+applyHidden();
+// if we resumed onto a removed case, move on
+setTimeout(()=>{ const s=slides[cur]; if(caseHidden(s)) { const j=nextVisible(cur,1); cur=-1; go(j); activate(j); } },50);
+document.addEventListener('click',e=>{ const b=e.target.closest('.hidebtn'); if(!b) return; e.stopPropagation(); const s=slides.find(x=>x.el.contains(b)); hideCase(s); });
+
 // ---------- Random test ----------
 const T={el:document.getElementById('test'),items:[],i:0,res:[],n:10,normals:true,hint:false};
 const norm=s=>String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/['’`]/g,'').replace(/\(.*?\)/g,' ').replace(/oe/g,'e').replace(/ae/g,'e').replace(/tumour/g,'tumor').replace(/colour/g,'color').replace(/\bnaevus/g,'nevus').replace(/slit lamp only|slit lamp/g,' ').replace(/[^a-z0-9]+/g,' ').replace(/\b(the|of|a|an|with|from|and|in|syndrome|synd|right|left|eye|od|os|ou)\b/g,' ').replace(/\b\d+\b/g,' ').replace(/\s+/g,' ').trim();
@@ -1445,8 +1511,8 @@ function pool(){
   });
 }
 function tShow(html){T.el.querySelector('.tin').innerHTML=html;T.el.scrollTop=0}
-function openTest(){ const s=slides[cur]; if(s&&s.type==='clip')s.vid.pause(); qcard.classList.remove('open'); qpill.classList.remove('show'); T.el.classList.add('open'); tStart(); }
-function closeTest(){ tStopVid(); T.el.classList.remove('open'); const s=slides[cur]; if(s&&s.type==='clip'){s.vid.play().catch(()=>{})} }
+function openTest(){ const s=slides[cur]; if(s&&s.type==='clip'&&s.vid)s.vid.pause(); qcard.classList.remove('open'); qpill.classList.remove('show'); T.el.classList.add('open'); tStart(); }
+function closeTest(){ tStopVid(); T.el.classList.remove('open'); const s=slides[cur]; if(s&&s.type==='clip'&&s.vid){s.vid.play().catch(()=>{})} }
 function tStart(){
   tShow(`<div class="th"><h2>🎲 Random test</h2><button class="tx" data-t="close">×</button></div>
   <p class="tm2">You'll see ${IMGSEC?'cases':'clips'} from the ${SECS[SEC].name} section in a random order. Type the diagnosis, or <b>normal</b>. Marking accepts synonyms, abbreviations (PDS, PXF, NVI…) and small typos, and you can override it.</p>
@@ -1506,7 +1572,7 @@ T.el.addEventListener('click',e=>{
   if(b.dataset.n){T.n=+b.dataset.n;T.el.querySelectorAll('#tn button').forEach(x=>x.classList.toggle('on',x===b));return}
   const a=b.dataset.t, v=T.el.querySelector('video');
   if(a==='close')closeTest();
-  else if(a==='go'){T.normals=T.el.querySelector('#tnorm').checked;T.hint=T.el.querySelector('#thint').checked;const p=pool(),sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);const nrm=sh(p.filter(s=>s.isNormal)),dis=sh(p.filter(s=>!s.isNormal));const k=T.normals?Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(T.n*0.25))):0;tBegin(sh(nrm.slice(0,k).concat(dis.slice(0,T.n-k))))}
+  else if(a==='go'){T.normals=T.el.querySelector('#tnorm').checked;T.hint=T.el.querySelector('#thint').checked;const p=pool().filter(s=>!caseHidden(s)),sh=a=>a.map(x=>[Math.random(),x]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);const nrm=sh(p.filter(s=>s.isNormal)),dis=sh(p.filter(s=>!s.isNormal));const k=T.normals?Math.min(nrm.length,1+Math.floor(Math.random()*Math.ceil(T.n*0.25))):0;tBegin(sh(nrm.slice(0,k).concat(dis.slice(0,T.n-k))))}
   else if(a==='hint')T.el.querySelector('.thx').innerHTML=hx(T.items[T.i]);
   else if(a==='skip')tAnswer('',true);
   else if(a==='next'){T.i++; T.i<T.items.length?tQ():tSummary()}
@@ -1559,6 +1625,7 @@ function renderProg(){
   <div class="plegend"><span><i class="cell c0"></i>not seen</span><span><i class="cell cp"></i>partly seen</span><span><i class="cell c1"></i>watched 1×</span><span><i class="cell c2"></i>2×</span><span><i class="cell c3"></i>3×+</span><span><i class="cell c1 ag"></i>≥75% correct</span><span><i class="cell c1 aa"></i>40–74%</span><span><i class="cell c1 ar"></i>&lt;40%</span></div>
   <p class="tm2" style="font-size:13px">${IMGSEC?'A case counts as viewed once you have looked at all its images for at least 3 seconds.':'A clip counts as watched when you\'ve played at least 90% of it in one go (scrubbing doesn\'t count).'} Tap any square to jump to that clip.</p>
   ${chRows}
+  <div class="pbox"><h3>🚫 Removed from the pile</h3>${(()=>{ const items=Object.entries(HID).filter(([k,v])=>v.h); if(!items.length) return '<p class="tm2" style="font-size:13px">Nothing removed. Use <b>🚫 Remove</b> under a case (or X on a keyboard) to take it out of the feed, quizzes and tests. In the zoom view, 🚫 removes a single image.</p>'; return `<div class="hidlist">${items.map(([k,v])=>`<div><span>${esc(v.n||k.slice(2))}<small>${SECS[v.s]?SECS[v.s].icon+' '+SECS[v.s].name:''}${k.startsWith('i|')?' · image '+(v.img||''):''}</small></span><button class="tlink" data-p="unhide" data-k="${esc(k)}">Restore</button></div>`).join('')}</div><button class="tgo sec" data-p="unhideall">Restore all (${items.length})</button>`; })()}</div>
   <div class="pbox" id="syncbox"></div>
   <div class="pbox"><h3>Manual backup</h3>
   <p class="tm2" style="font-size:13px">${TRK.persistent?'Progress is saved automatically in this browser on this device. Clearing browser data, private browsing, or opening the file in a different browser or device starts fresh, so keep a backup.':'This browser is blocking storage, so progress will be lost when you close the page. Download a backup before you leave.'}</p>
@@ -1569,11 +1636,12 @@ function renderProg(){
   if(window.SYNC) SYNC.renderPanel();
   PG.el.querySelector('#pfile').onchange=e=>{const f=e.target.files[0]; if(!f) return; f.text().then(doImport)};
 }
-function backupText(){ let quiz={}; try{quiz=JSON.parse(localStorage.getItem('gonioscroll_q')||'{}')}catch(e){} return TRK.exportJSON({quiz}); }
+function backupText(){ let quiz={}; try{quiz=JSON.parse(localStorage.getItem('gonioscroll_q')||'{}')}catch(e){} return TRK.exportJSON({quiz,hidden:HID}); }
 function mergeBackup(text,manual){
   const {o,wiped}=TRK.importJSON(typeof text==='string'?text.trim():text,manual);
   if(wiped){ Object.keys(QS).forEach(k=>delete QS[k]); slides.forEach(s=>{s.qPopped=false}); }
   if(o.quiz){ Object.entries(o.quiz).forEach(([k,arr])=>{ QS[k]=QS[k]||[]; (arr||[]).forEach((v,i)=>{ if(v!=null&&QS[k][i]==null) QS[k][i]=v; }); }); }
+  if(o.hidden) mergeHidden(o.hidden);
   saveQS(); score(); return o;
 }
 function doImport(text){
@@ -1581,8 +1649,8 @@ function doImport(text){
   try{ mergeBackup(text,true); renderProg(); PG.el.querySelector('#pmsg').textContent='✓ Restored and merged with your current progress.'; if(window.SYNC) SYNC.soon(); }
   catch(e){ m.textContent='✗ That doesn\'t look like a GonioScroll backup.'; }
 }
-function openProg(){ if(window.SYNC) SYNC.soon(); const s=slides[cur]; if(s&&s.type==='clip') s.vid.pause(); qcard.classList.remove('open'); TRK.save(); renderProg(); PG.el.classList.add('open'); PG.el.scrollTop=0; }
-function closeProg(){ PG.el.classList.remove('open'); const s=slides[cur]; if(s&&s.type==='clip') s.vid.play().catch(()=>{}); }
+function openProg(){ if(window.SYNC) SYNC.soon(); const s=slides[cur]; if(s&&s.type==='clip'&&s.vid) s.vid.pause(); qcard.classList.remove('open'); TRK.save(); renderProg(); PG.el.classList.add('open'); PG.el.scrollTop=0; }
+function closeProg(){ PG.el.classList.remove('open'); const s=slides[cur]; if(s&&s.type==='clip'&&s.vid) s.vid.play().catch(()=>{}); }
 let resetArm=0;
 PG.el.addEventListener('click',e=>{
   const b=e.target.closest('[data-p]'); if(!b) return; const a=b.dataset.p, m=PG.el.querySelector('#pmsg');
@@ -1592,6 +1660,8 @@ PG.el.addEventListener('click',e=>{
   else if(a==='copy'){ const t=backupText(); (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>m.textContent='✓ Backup code copied. Paste it into a note or email to yourself.').catch(()=>{ PG.el.querySelector('#ppaste').style.display='block'; const ta=PG.el.querySelector('#ptext'); ta.value=t; ta.select(); m.textContent='Select-all and copy the code in the box.'; }); }
   else if(a==='paste'){ PG.el.querySelector('#ppaste').style.display='block'; PG.el.querySelector('#ptext').value=''; PG.el.querySelector('#ptext').focus(); }
   else if(a==='doimport') doImport(PG.el.querySelector('#ptext').value);
+  else if(a==='unhide'){ setHid(b.dataset.k,0); applyHidden(); renderProg(); toast('Restored'); }
+  else if(a==='unhideall'){ Object.keys(HID).forEach(k=>{ if(HID[k].h) setHid(k,0); }); applyHidden(); renderProg(); toast('All restored'); }
   else if(a==='reset'){ if(Date.now()-resetArm<4000){ TRK.reset(); if(window.SYNC) SYNC.soon(true); Object.keys(QS).forEach(k=>delete QS[k]); saveQS(); score(); slides.forEach(s=>{s.qPopped=false}); m.textContent='Progress reset.'; renderProg(); } else { resetArm=Date.now(); b.textContent='Tap again to permanently reset everything'; } }
 });
 PG.el.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Escape') closeProg(); });
@@ -1610,7 +1680,7 @@ const SYNC=(function(){
     if(!r.ok){ const e=new Error('GitHub error '+r.status); e.status=r.status; throw e; }
     return r.status===204?null:r.json();
   }
-  const payload=()=>{ let quiz={}; try{ quiz=JSON.parse(localStorage.getItem('gonioscroll_q')||'{}'); }catch(e){} return JSON.stringify(TRK.exportObj({quiz}),null,0); };
+  const payload=()=>{ let quiz={}; try{ quiz=JSON.parse(localStorage.getItem('gonioscroll_q')||'{}'); }catch(e){} return JSON.stringify(TRK.exportObj({quiz,hidden:HID}),null,0); };
   async function create(){ const g=await api('/gists',{method:'POST',body:JSON.stringify({description:'GonioScroll progress (synced automatically — do not edit)',public:false,files:{[FILE]:{content:payload()}}})}); cfg.gist=g.id; cfg.url=g.html_url; saveCfg(); }
   async function sync(){
     if(!on()) return; if(busy){ again=true; return; } busy=true; err=''; status='Syncing…'; paint();
