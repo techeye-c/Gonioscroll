@@ -282,10 +282,9 @@ video{width:100%;max-height:100%;background:#000;display:block;object-fit:contai
 .msecs button.cur{background:var(--acc);color:#081210;font-weight:700}
 #lb{position:fixed;inset:0;z-index:70;background:#000;display:none;flex-direction:column}
 #lb.open{display:flex}
-#lb .lbin{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;touch-action:pan-x pan-y pinch-zoom}
-#lb img{max-width:100%;max-height:100%;object-fit:contain}
-#lb.zoom .lbin{display:block}
-#lb.zoom img{max-width:none;max-height:none;width:auto}
+#lb .lbin{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;touch-action:none;position:relative}
+#lb img{max-width:100%;max-height:100%;object-fit:contain;transform-origin:0 0;will-change:transform;user-select:none;-webkit-user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none}
+#lb.zoom .lbin{cursor:grab}
 #lb .lbbar{display:flex;align-items:center;gap:10px;padding:10px 14px calc(12px + env(safe-area-inset-bottom));background:#0b0f13;color:#ddd;font-size:13px}
 #lb .lbbar button{background:#1c252f;border:1px solid var(--line);border-radius:10px;padding:7px 12px;color:#fff}
 #lb .lbcap{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#aab}
@@ -1424,13 +1423,56 @@ function onSlideChange(s){
 
 // ---------- image lightbox ----------
 const LB={el:document.getElementById('lb'),rec:null,k:0};
-function openLB(rec,k){ LB.rec=rec; LB.k=k||0; LB.el.classList.remove('zoom'); paintLB(); LB.el.classList.add('open'); }
-function paintLB(){ const [u,c]=LB.rec.imgs[LB.k]; LB.el.querySelector('img').src=u; LB.el.querySelector('.lbn').textContent=(LB.k+1)+' / '+LB.rec.imgs.length; const hide=document.body.classList.contains('quiz')&&!LB.rec.el.classList.contains('shown'); LB.el.querySelector('.lbcapw').textContent=hide?'':c; LB.el.querySelector('.lbcap').textContent=''; LB.el.querySelectorAll('[data-l="-1"],[data-l="1"]').forEach(b=>b.style.visibility=LB.rec.imgs.length>1?'visible':'hidden'); LB.el.querySelector('[data-l="hide"]').title=LB.rec.imgs.length>1?'Remove this image':'Remove this case'; if(slides[cur]===LB.rec) seeImg(LB.rec,LB.k); }
+function openLB(rec,k){ LB.rec=rec; LB.k=k||0; paintLB(); LB.el.classList.add('open'); }
+function paintLB(){ zReset(); const [u,c]=LB.rec.imgs[LB.k]; LB.el.querySelector('img').src=u; LB.el.querySelector('.lbn').textContent=(LB.k+1)+' / '+LB.rec.imgs.length; const hide=document.body.classList.contains('quiz')&&!LB.rec.el.classList.contains('shown'); LB.el.querySelector('.lbcapw').textContent=hide?'':c; LB.el.querySelector('.lbcap').textContent=''; LB.el.querySelectorAll('[data-l="-1"],[data-l="1"]').forEach(b=>b.style.visibility=LB.rec.imgs.length>1?'visible':'hidden'); LB.el.querySelector('[data-l="hide"]').title=LB.rec.imgs.length>1?'Remove this image':'Remove this case'; if(slides[cur]===LB.rec) seeImg(LB.rec,LB.k); }
 function lbStep(d){ if(!LB.rec) return; LB.k=(LB.k+d+LB.rec.imgs.length)%LB.rec.imgs.length; paintLB(); }
 function closeLB(){ LB.el.classList.remove('open'); if(LB.rec&&LB.rec.kind==='img'&&slides[cur]===LB.rec){ const car=LB.rec.el.querySelector('.car'); car.scrollTo({left:LB.k*car.clientWidth}); } }
-LB.el.addEventListener('click',e=>{ const b=e.target.closest('[data-l]'); if(e.target.closest('.lbx')){ closeLB(); return; } if(!b) { if(e.target.tagName==='IMG') LB.el.classList.toggle('zoom'); return; } const a=b.dataset.l; if(a==='z') LB.el.classList.toggle('zoom'); else if(a==='hide') hideImage(LB.rec,LB.k); else lbStep(+a); });
-let lbx0=null; LB.el.addEventListener('touchstart',e=>{ if(e.touches.length===1&&!LB.el.classList.contains('zoom')) lbx0=e.touches[0].clientX; else lbx0=null; },{passive:true});
-LB.el.addEventListener('touchend',e=>{ if(lbx0==null) return; const dx=e.changedTouches[0].clientX-lbx0; if(Math.abs(dx)>50) lbStep(dx<0?1:-1); lbx0=null; },{passive:true});
+// pinch / pan / double-tap zoom, done by hand so the browser never zooms or reloads the page
+const ZM={s:1,x:0,y:0}, lbImg=LB.el.querySelector('.lbin img'), lbIn=LB.el.querySelector('.lbin');
+function zApply(anim){ lbImg.style.transition=anim?'transform .2s ease':'none'; lbImg.style.transform=`translate(${ZM.x}px,${ZM.y}px) scale(${ZM.s})`; LB.el.classList.toggle('zoom',ZM.s>1.01); }
+function zReset(anim){ ZM.s=1; ZM.x=0; ZM.y=0; zApply(anim); }
+function zClamp(){ // keep the image covering the view when zoomed
+  if(ZM.s<=1){ ZM.s=1; ZM.x=0; ZM.y=0; return; }
+  const W=lbImg.offsetWidth, H=lbImg.offsetHeight, w=W*ZM.s, h=H*ZM.s, vw=lbIn.clientWidth, vh=lbIn.clientHeight, ox=lbImg.offsetLeft, oy=lbImg.offsetTop;
+  const fit=(p,sz,v,o)=> sz<=v ? (v-sz)/2-o : Math.min(-o,Math.max(v-o-sz,p));
+  ZM.x=fit(ZM.x,w,vw,ox); ZM.y=fit(ZM.y,h,vh,oy); }
+function zAt(ns,cx,cy){ // zoom to scale ns keeping screen point (cx,cy) fixed
+  ns=Math.max(1,Math.min(8,ns)); const r=lbImg.getBoundingClientRect(), b=lbIn.getBoundingClientRect();
+  const px=(cx-r.left)/ZM.s, py=(cy-r.top)/ZM.s; // point in unscaled image coords
+  ZM.s=ns; ZM.x=cx-b.left-lbImg.offsetLeft-px*ns; ZM.y=cy-b.top-lbImg.offsetTop-py*ns; }
+const TP={}; let gest=null, lastTap=0, moved=false;
+lbIn.addEventListener('touchstart',e=>{ e.preventDefault();
+  if(e.touches.length===2){ const [a,b]=e.touches; gest={type:'pinch',d0:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),s0:ZM.s,mx:(a.clientX+b.clientX)/2,my:(a.clientY+b.clientY)/2,x0:ZM.x,y0:ZM.y}; moved=true; }
+  else if(e.touches.length===1 && !gest){ const p=e.touches[0]; gest={type:'one',sx:p.clientX,sy:p.clientY,x0:ZM.x,y0:ZM.y}; moved=false; }
+},{passive:false});
+lbIn.addEventListener('touchmove',e=>{ e.preventDefault(); if(!gest) return;
+  if(gest.type==='pinch'&&e.touches.length>=2){ const [a,b]=e.touches, d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY), mx=(a.clientX+b.clientX)/2, my=(a.clientY+b.clientY)/2;
+    ZM.x=gest.x0; ZM.y=gest.y0; ZM.s=gest.s0; zAt(gest.s0*d/gest.d0,gest.mx,gest.my); ZM.x+=mx-gest.mx; ZM.y+=my-gest.my; zApply(false); }
+  else if(gest.type==='one'){ const p=e.touches[0], dx=p.clientX-gest.sx, dy=p.clientY-gest.sy; if(Math.abs(dx)+Math.abs(dy)>8) moved=true;
+    if(ZM.s>1.01){ ZM.x=gest.x0+dx; ZM.y=gest.y0+dy; zApply(false); } else { lbImg.style.transition='none'; lbImg.style.transform=`translate(${dx}px,0)`; } }
+},{passive:false});
+lbIn.addEventListener('touchend',e=>{ e.preventDefault(); if(!gest) return;
+  if(e.touches.length>0){ if(gest.type==='pinch'&&e.touches.length===1){ const p=e.touches[0]; gest={type:'one',sx:p.clientX,sy:p.clientY,x0:ZM.x,y0:ZM.y,afterPinch:true}; } return; }
+  const g=gest; gest=null;
+  if(g.type==='pinch'||g.afterPinch){ zClamp(); zApply(true); return; }
+  const p=e.changedTouches[0], dx=p.clientX-g.sx;
+  if(!moved){ const now=Date.now(); if(now-lastTap<300){ lastTap=0; if(ZM.s>1.01) zReset(true); else { zAt(2.5,p.clientX,p.clientY); zClamp(); zApply(true); } } else lastTap=now; return; }
+  if(ZM.s>1.01){ zClamp(); zApply(true); return; }
+  if(Math.abs(dx)>50&&LB.rec.imgs.length>1) lbStep(dx<0?1:-1); else zReset(true);
+},{passive:false});
+lbIn.addEventListener('touchcancel',()=>{ gest=null; zClamp(); zApply(true); });
+// desktop: wheel / double-click to zoom, drag to pan
+lbIn.addEventListener('wheel',e=>{ e.preventDefault(); zAt(ZM.s*Math.exp(-e.deltaY*0.0025),e.clientX,e.clientY); zClamp(); zApply(false); },{passive:false});
+lbIn.addEventListener('dblclick',e=>{ if(ZM.s>1.01) zReset(true); else { zAt(2.5,e.clientX,e.clientY); zClamp(); zApply(true); } });
+let drag=null; lbIn.addEventListener('mousedown',e=>{ if(ZM.s>1.01){ drag={x:e.clientX,y:e.clientY,x0:ZM.x,y0:ZM.y}; e.preventDefault(); } });
+window.addEventListener('mousemove',e=>{ if(!drag) return; ZM.x=drag.x0+e.clientX-drag.x; ZM.y=drag.y0+e.clientY-drag.y; zApply(false); });
+window.addEventListener('mouseup',()=>{ if(drag){ drag=null; zClamp(); zApply(true); } });
+LB.el.addEventListener('click',e=>{ const b=e.target.closest('[data-l]'); if(e.target.closest('.lbx')){ closeLB(); return; } if(!b) return; const a=b.dataset.l;
+  if(a==='z'){ const r=lbIn.getBoundingClientRect(); if(ZM.s>1.01) zReset(true); else { zAt(2.5,r.left+r.width/2,r.top+r.height/2); zClamp(); zApply(true); } }
+  else if(a==='hide') hideImage(LB.rec,LB.k); else lbStep(+a); });
+window.addEventListener('resize',()=>{ if(LB.el.classList.contains('open')) zReset(); });
+// stop iOS Safari's own page pinch (it ignores user-scalable) while the viewer is open
+['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>{ if(LB.el.classList.contains('open')) e.preventDefault(); },{passive:false}));
 
 
 // ---------- quick reveal (quiz mode) ----------
